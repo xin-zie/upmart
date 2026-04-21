@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | UPMart</title>
+    <link rel="stylesheet" href="login-panel.css">
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="form-container">
+            <div class="forms-slider" id="formsSlider">
+                <div class="form-section">
+                    <div class="brand">
+                        <img src="logo.png" class="logo-image" alt="UPMart Logo" style="margin-bottom: 40px;">
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" placeholder="Name">
+                        <input type="email" placeholder="UP Email">
+                        <input type="password" placeholder="Password">
+                    </div>
+                    <button class="login-btn">LOGIN</button>    
+
+                    <div class="form-footer">
+                        <label class="remember-me">
+                            <input type="checkbox"> Remember me
+                        </label>
+                        <a href="#" class="forgot-link">Forgot password?</a>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="brand">
+                        <img src="logo.png" class="logo-image" alt="UPMart Logo">
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" placeholder="Full Name">
+                        <input type="email" placeholder="UP Email">
+                        <input type="password" placeholder="Create Password">
+                    </div>
+                    <button class="login-btn">SIGN UP</button>
+
+                    <p style="color: #333; font-size: 1rem; margin-top: 20px;">
+                        Already a member? <button class="switch-btn" onclick="toggleForm()">Login</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="visual-container">
+            <nav class="top-nav">
+                <a href="about.html" class="nav-link" style="opacity: 1; border: 1px solid white; padding: 4px 12px; border-radius: 4px;">ABOUT</a>
+                <a href="contact.html" class="nav-link">CONTACT</a>
+                <a href="login.html" class="nav-link">SIGN UP</a>
+            </nav>
+
+            <div class="content-row">
+                <div class="about-text">
+                    <h1>What is UPMart?</h1>
+                    <p>UP Mindanao students currently navigate a disorganized Facebook-based marketplace that makes finding essential goods difficult and necessitates expensive trips to downtown Davao. The UPMART project will resolve this by launching a dedicated web application featuring categorized listings and dynamic filters to create a streamlined, efficient, and exclusive campus trade experience.</p>
+                </div>
+                <div class="cart-wrapper">
+                    <img src="cart-icon.png" alt="Shopping Cart" class="cart-image">
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function toggleForm() {
+            const slider = document.getElementById('formsSlider');
+            slider.classList.toggle('slide-active');
+        }
+    </script>
+</body>
+</html>
