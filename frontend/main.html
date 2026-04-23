@@ -11,51 +11,85 @@
 </head>
 
 <body>
-    <nav class="sidebar">
+    <div class="sidebar">
         <div class="sidebar-brand">
-            <img src="logo.png" class="logo-img" alt="UPMart Logo" class="sidebar-logo">
+            <img src="logo.png" class="logo-img" alt="UPMart Logo">
         </div>
 
         <img src="profile.jpg" alt="Profile" class="profile-img">
         <div class="profile-info">
-            <span class="profile-name">Diane Mahusay</span>
+            <span class="profile-name">User</span>
         </div>
 
         <ul class="nav-links">
             <li class="active">
-                <a href="main.html"><span class="icon">🏠︎</span> Dashboard</a>
+                <a href="main.html"><span>🏠︎</span> Dashboard</a>
             </li>
             <li>
-                <a href="#"><span class="icon">🛒</span> Marketplace</a>
+                <a href="#"><span>🛒</span> Marketplace</a>
             </li>
 
             <div class="logout-container">
                 <button class="logout-btn">Logout</button>
             </div>
         </ul>
-    </nav>
+    </div>
 
     <div class="main-content">
         <nav class="top-nav">
-            <h1 style="font-size: 1.4rem; margin-top: 10px;"><span class="icon">🏠︎</span> Dashboard</h1>
+            <h1 style="font-size: 1.4rem; margin-top: 10px;">🏠︎ Dashboard</h1>
             <div class="status-indicators">
-                <button class="icon-btn" id="notifBtn"><span class="material-icons">notifications</span><span>
+                <button class="icon-btn" id="notifTrigger"><span class="material-icons">notifications</span><span
                         class="notif-badge"></span></button>
-                <button class="icon-btn" id="helpBtn"><span class="material-icons">help_outline</span></button>
+                <button class="icon-btn" id="helpBtn"><span class="material-icons">report </span></button>
             </div>
         </nav>
 
         <div class="content-row">
             <div class="about-text">
-                <h1 style="color: maroon;">Welcome to UPMart, Diane!</h1>
+                <h1 style="color: maroon;">Welcome to UPMart, User!</h1>
                 <p>Start exploring our marketplace and discover amazing products!</p>
             </div>
         </div>
 
+        <section class="wishlist-section">
+            <div class="section-header">
+                <h3>Wishlist Matches</h3>
+                <button class="add-wish-btn">+ Add My Wish</button>
+            </div>
+
+            <div class="wish-grid">
+                <div class="wish-card">
+                    <div class="wish-info">
+                        <span class="category-tag">Books</span>
+                        <h4>Math 21 Reviewer</h4>
+                        <p>Requested by: <strong>Juan D.</strong></p>
+                    </div>
+                    <button class="match-btn">I have this!</button>
+                </div>
+
+                <div class="wish-card">
+                    <div class="wish-info">
+                        <span class="category-tag">Dorm</span>
+                        <h4>Electric Kettle</h4>
+                        <p>Requested by: <strong>Maria S.</strong></p>
+                    </div>
+                    <button class="match-btn">I have this!</button>
+                </div>
+            </div>
+        </section>
+
         <section class="stats-section">
-            <div class="chart-container">
-                <h3>Top Categories</h3>
-                <canvas id="myChart"></canvas>
+            <div class="promo-banner">
+                <div class="promo-text">
+                    <span class="tag">UPMart Featured</span>
+                    <h2>End of Sem Clearance!</h2>
+                    <p>Dormers leaving campus are selling essentials at 50% off.</p>
+                    <button class="promo-btn">Browse Sale</button>
+                </div>
+                <div class="promo-icon">
+                    <span class="material-icons">local_fire_department</span>
+                </div>
             </div>
 
             <div class="product-inventory">
@@ -79,6 +113,51 @@
 
         <div class="footer">
             <p>&copy;2026 UPMart. All rights reserved.</p>
+        </div>
+    </div>
+
+    <div class="notif-drawer" id="notifDrawer">
+        <div class="drawer-header">
+            <div class="header-left">
+                <h3>Notifications</h3>
+                <span class="update-count">6 new updates</span>
+            </div>
+            <button class="close-drawer" id="closeNotifBtn">
+                <span class="material-icons">close</span>
+            </button>
+        </div>
+
+        <div class="drawer-body">
+            <div class="notif-card">
+                <div class="notif-avatar">
+                    <img src="nat.jpg" alt="User">
+                </div>
+                <div class="notif-content">
+                    <p>
+                        <a href="#" class="user-link">Natalie</a> commented: "GIVE ME FEETS"
+                    </p>
+                    <span class="notif-time">2 days ago</span>
+                </div>
+                <button class="delete-notif" title="Delete Notification">
+                    <span class="material-symbols-outlined">delete</span>
+                </button>
+            </div>
+
+            <div class="notif-card">
+                <div class="notif-avatar green-border">
+                    <img src="sybil.jpg" alt="User">
+                </div>
+                <div class="notif-content">
+                    <p>
+                        <a href="#" class="user-link">Sybil Security</a> has requested to send $120.00 money.
+                    </p>
+                    <span class="notif-time">6 days ago</span>
+                </div>
+                <button class="delete-notif">
+                    <span class="material-symbols-outlined">delete</span>
+                </button>
+            </div>
+
         </div>
     </div>
 
