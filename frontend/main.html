@@ -4,86 +4,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UPMart</title>
-    <link rel="stylesheet" href="main-panel.css">
+    <title>Log in | UPMart</title>
+    <link rel="stylesheet" href="login-panel.css">
     <link rel="icon" href="favicon.png" type="image/png">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 
 <body>
-    <nav class="sidebar">
-        <div class="sidebar-brand">
-            <img src="logo.png" class="logo-img" alt="UPMart Logo" class="sidebar-logo">
-        </div>
-
-        <img src="profile.jpg" alt="Profile" class="profile-img">
-        <div class="profile-info">
-            <span class="profile-name">Diane Mahusay</span>
-        </div>
-
-        <ul class="nav-links">
-            <li class="active">
-                <a href="main.html"><span class="icon">🏠︎</span> Dashboard</a>
-            </li>
-            <li>
-                <a href="#"><span class="icon">🛒</span> Marketplace</a>
-            </li>
-
-            <div class="logout-container">
-                <button class="logout-btn">Logout</button>
-            </div>
-        </ul>
-    </nav>
-
-    <div class="main-content">
-        <nav class="top-nav">
-            <h1 style="font-size: 1.4rem; margin-top: 10px;"><span class="icon">🏠︎</span> Dashboard</h1>
-            <div class="status-indicators">
-                <button class="icon-btn" id="notifBtn"><span class="material-icons">notifications</span><span
-                        class="notif-badge"></span></button>
-                <button class="icon-btn" id="helpBtn"><span class="material-icons">help_outline</span></button>
-            </div>
-        </nav>
-
-        <div class="content-row">
-            <div class="about-text">
-                <h1 style="color: maroon;">Welcome to UPMart, Diane!</h1>
-                <p>Start exploring our marketplace and discover amazing products!</p>
-            </div>
-        </div>
-
-        <section class="stats-section">
-            <div class="chart-container">
-                <h3>Top Categories</h3>
-                <canvas id="myChart"></canvas>
-            </div>
-
-            <div class="product-inventory">
-                <div class="bulletin-board">
-                    <div class="bulletin-header">
-                        <h3>UPMart Bulletin</h3>
-                        <span class="limit-info">Max 100 chars</span>
+    <div class="main-container">
+        <div class="form-container">
+            <div class="forms-slider" id="formsSlider">
+                <div class="form-section">
+                    <div class="brand">
+                        <img src="logo.png" class="logo-image" alt="UPMart Logo" style="margin-bottom: 40px;">
                     </div>
 
-                    <div class="bulletin-input">
-                        <textarea id="bulletinText" placeholder="Post a quick update..." maxlength="100"></textarea>
-                        <button id="postBtn">Post</button>
+                    <div class="input-group">
+                        <input type="text" placeholder="Name">
+                        <input type="email" placeholder="UP Email">
+                        <input type="password" placeholder="Password">
                     </div>
+                    <button class="login-btn">LOGIN</button>    
 
-                    <div id="bulletinList" class="bulletin-list">
-                        <div class="post">Welcome to the UPMart Bulletin! Keep it friendly.</div>
+                    <div class="form-footer">
+                        <label class="remember-me">
+                            <input type="checkbox"> Remember me
+                        </label>
+                        <a href="forgot-pass.html" class="forgot-link">Forgot password?</a>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <div class="footer">
-            <p>&copy;2026 UPMart. All rights reserved.</p>
+                <div class="form-section">
+                    <div class="brand">
+                        <img src="logo.png" class="logo-image" alt="UPMart Logo" style="margin-bottom: 40px;">
+                    </div>
+
+                    <div class="input-group">
+                        <h2 style="margin-bottom: 10px; color: #1a1a2e; text-align: center;">Create Account</h2>
+                        <input type="text" placeholder="Full Name">
+                        <input type="email" placeholder="UP Email">
+                        <input type="password" placeholder="Create Password">
+                    </div>
+                    <button class="login-btn">SIGN UP</button>
+
+                    <p style="color: #333; font-size: 1rem; margin-top: 20px;">
+                        Already a member? <button class="switch-btn" onclick="toggleForm()">Login</button>
+                    </p>
+                </div>
+
+            </div>
         </div>
+
+        <div class="visual-container">
+            <nav class="top-nav">
+                <a href="about.html" class="nav-link">ABOUT</a>
+                <a href="contact.html" class="nav-link">CONTACT</a>
+                <a href="login.html" class="nav-link" style="opacity: 1; border: 1px solid white; padding: 4px 12px; border-radius: 4px;">SIGN UP</a>
+            </nav>
+
+            <div class="content-row">
+                <div class="about-text">
+                    <h1>Welcome.</h1>
+                    <p>Ready to elevate your business? Join the UPMart today.</p>
+                    <p class="not-member">
+                        Not a member? <button class="switch-btn" onclick="toggleForm()">Sign up now</button>
+                    </p>
+                </div>
+                <div class="cart-wrapper">
+                    <img src="cart-icon.png" alt="Cart" class="cart-image">
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="main-dash.js"></script>
+    <script>
+        function toggleForm() {
+            const slider = document.getElementById('formsSlider');
+            slider.classList.toggle('slide-active');
+        }
+    </script>
 </body>
-
 </html>
