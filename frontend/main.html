@@ -41,7 +41,8 @@
             <div class="status-indicators">
                 <button class="icon-btn" id="notifTrigger"><span class="material-icons">notifications</span><span
                         class="notif-badge"></span></button>
-                <button class="icon-btn" id="helpBtn"><span class="material-icons">report </span></button>
+                <button class="icon-btn" onclick="openReportModal()"><span class="material-icons">report
+                    </span></button>
             </div>
         </nav>
 
@@ -52,67 +53,87 @@
             </div>
         </div>
 
-        <section class="wishlist-section">
-            <div class="section-header">
-                <h3>Wishlist Matches</h3>
-                <button class="add-wish-btn">+ Add My Wish</button>
-            </div>
-
-            <div class="wish-grid">
-                <div class="wish-card">
-                    <div class="wish-info">
-                        <span class="category-tag">Books</span>
-                        <h4>Math 21 Reviewer</h4>
-                        <p>Requested by: <strong>Juan D.</strong></p>
+        <section class="dashboard-grid">
+            <div class="left-column">
+                <section class="wishlist-section">
+                    <div class="section-header">
+                        <h3>Wishlist Matches</h3>
+                        <button class="add-wish-btn">+ Add My Wish</button>
                     </div>
-                    <button class="match-btn">I have this!</button>
+
+                    <div class="wish-grid">
+                        <div class="wish-card">
+                            <div class="wish-info">
+                                <span class="category-tag">Books</span>
+                                <h4>Math 21 Reviewer</h4>
+                                <p>Requested by: <strong>Juan D.</strong></p>
+                            </div>
+                            <button class="match-btn">I have this!</button>
+                        </div>
+                    </div>
+                    <div class="wish-card">
+                        <div class="wish-info">
+                            <span class="category-tag">Dorm</span>
+                            <h4>Electric Kettle</h4>
+                            <p>Requested by: <strong>Maria S.</strong></p>
+                        </div>
+                        <button class="match-btn">I have this!</button>
+                    </div>
+                    <div class="wish-card">
+                        <div class="wish-info">
+                            <span class="category-tag">Food</span>
+                            <h4>Tiramisu Cake</h4>
+                            <p>Requested by: <strong>Sybil M.</strong></p>
+                        </div>
+                        <button class="match-btn">I have this!</button>
+                    </div>
+                </section>
+
+                <div class="promo-banner">
+                    <div class="promo-text">
+                        <span class="tag">UPMart Featured</span>
+                        <h2>End of Sem Clearance!</h2>
+                        <p>Dormers leaving campus are selling essentials at 50% off.</p>
+                        <button class="promo-btn">Browse Sale</button>
+                    </div>
+                    <div class="promo-icon">
+                        <span class="material-icons">local_fire_department</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bulletin-board">
+                <div class="bulletin-header">
+                    <h3>UPMart Bulletin</h3>
+                    <span class="limit-info">Max 100 chars</span>
                 </div>
 
-                <div class="wish-card">
-                    <div class="wish-info">
-                        <span class="category-tag">Dorm</span>
-                        <h4>Electric Kettle</h4>
-                        <p>Requested by: <strong>Maria S.</strong></p>
-                    </div>
-                    <button class="match-btn">I have this!</button>
+                <div class="bulletin-input">
+                    <textarea id="bulletinText" placeholder="Post a quick update..." maxlength="100"></textarea>
+                    <button id="postBtn">Post</button>
+                </div>
+
+                <div id="bulletinList" class="bulletin-list">
+                    <div class="post">Welcome to the UPMart Bulletin! Keep it friendly.</div>
                 </div>
             </div>
         </section>
-
-        <section class="stats-section">
-            <div class="promo-banner">
-                <div class="promo-text">
-                    <span class="tag">UPMart Featured</span>
-                    <h2>End of Sem Clearance!</h2>
-                    <p>Dormers leaving campus are selling essentials at 50% off.</p>
-                    <button class="promo-btn">Browse Sale</button>
-                </div>
-                <div class="promo-icon">
-                    <span class="material-icons">local_fire_department</span>
-                </div>
-            </div>
-
-            <div class="product-inventory">
-                <div class="bulletin-board">
-                    <div class="bulletin-header">
-                        <h3>UPMart Bulletin</h3>
-                        <span class="limit-info">Max 100 chars</span>
-                    </div>
-
-                    <div class="bulletin-input">
-                        <textarea id="bulletinText" placeholder="Post a quick update..." maxlength="100"></textarea>
-                        <button id="postBtn">Post</button>
-                    </div>
-
-                    <div id="bulletinList" class="bulletin-list">
-                        <div class="post">Welcome to the UPMart Bulletin! Keep it friendly.</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <div class="footer">
             <p>&copy;2026 UPMart. All rights reserved.</p>
+        </div>
+
+        <div id="setupSection" class="content-view">
+            <h2>Complete Your Profile</h2>
+            <p>Before you start trading on UPMart, we need a few details.</p>
+
+            <form class="setup-form">
+                <input type="text" placeholder="Contact Number (e.g., 0917...)" required>
+                <input type="text" placeholder="Facebook Link / Social Media">
+                <textarea placeholder="Tell us about yourself..."></textarea>
+                <button type="submit" class="btn-submit">Finish Setup</button>
+            </form>
+        </div>
+
+        <div id="dashboardSection" class="content-view" style="display: none;">
         </div>
     </div>
 
@@ -158,6 +179,33 @@
                 </button>
             </div>
 
+        </div>
+    </div>
+    <div id="reportModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Report Issue</h3>
+                <span class="close-modal" id="closeModal">&times;</span>
+            </div>
+
+            <form id="reportForm">
+                <label for="reportType">Reason for Report</label>
+                <select id="reportType" required>
+                    <option value="">Select a reason...</option>
+                    <option value="scam">Potential Scam / Fraud</option>
+                    <option value="inappropriate">Inappropriate Content</option>
+                    <option value="misleading">Misleading Description</option>
+                    <option value="other">Other</option>
+                </select>
+
+                <label for="reportDetails">Details</label>
+                <textarea id="reportDetails" placeholder="Please describe the issue in detail..." required></textarea>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn-submit">Submit Report</button>
+                </div>
+            </form>
         </div>
     </div>
 
