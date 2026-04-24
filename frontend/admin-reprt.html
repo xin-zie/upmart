@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="admin-panel.css">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <img src="logo.png" class="logo-img" alt="UPMart Logo">
+        </div>
+
+        <img src="profile.jpg" alt="Profile" class="profile-img">
+        <div class="profile-info">
+            <span class="profile-name">Admin</span>
+        </div>
+
+        <ul class="nav-links">
+            <li class="active">
+                <a href="admin.html"><span>🏠︎</span> Dashboard</a>
+            </li>
+            <li>
+                <a href="admin-posts.html"><span>📮</span> Posts</a>
+            </li>
+            <li>
+                <a href="admin-reprt.html" style="background: #e1f5da; color: black" ;><span>🔔</span> Reports</a>
+            </li>
+
+            <div class="logout-container">
+                <button class="logout-btn">Logout</button>
+            </div>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <nav class="top-nav">
+            <h1 style="font-size: 1.4rem; margin-top: 10px;">🔔 Reports</h1>
+            <div class="status-indicators">
+                <button class="icon-btn" id="notifTrigger" style="margin-left: 50px";><span class="material-icons">notifications</span><span
+                        class="notif-badge"></span></button>
+            </div>
+        </nav>
+
+        <div class="content-row">
+            <div class="about-text">
+                <p>Review and take action on reported content or users.</p>
+            </div>
+        </div>
+
+        <section class="reports-container">
+            <div class="reports-header">
+                <div class="header-text">
+                    <h3>List of Reports</h3>
+                </div>
+                <div class="filter-options">
+                    <select id="reportFilter">
+                        <option value="all">All Reports</option>
+                        <option value="scam">Scams</option>
+                        <option value="harassment">Harassment</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="reports-list">
+                <div class="report-card urgent">
+                    <div class="report-main">
+                        <div class="report-type">
+                            <span class="material-icons warning-icon">report_problem</span>
+                            <div>
+                                <h4>Potential Scam</h4>
+                                <span class="report-date">Reported 2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="report-parties">
+                            <div class="party">
+                                <small>Reporter:</small>
+                                <span>@Diane_UP</span>
+                            </div>
+                            <div class="party">
+                                <small>Accused:</small>
+                                <span>@FakeSeller22</span>
+                            </div>
+                        </div>
+                        <p class="report-description">
+                            "This user asked for a GCash payment before meeting up and then blocked me."
+                        </p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="view-btn">Investigate</button>
+                        <button class="ban-btn">Ban User</button>
+                        <button class="dismiss-btn">Dismiss</button>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-main">
+                        <div class="report-type">
+                            <span class="material-icons info-icon">info</span>
+                            <div>
+                                <h4>Inappropriate Content</h4>
+                                <span class="report-date">Reported 5 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="report-parties">
+                            <div class="party">
+                                <small>Reporter:</small>
+                                <span>@Juan_D</span>
+                            </div>
+                            <div class="party">
+                                <small>Accused:</small>
+                                <span>@Item_Listing_#502</span>
+                            </div>
+                        </div>
+                        <p class="report-description">
+                            "The photo used for this textbook contains offensive doodles."
+                        </p>
+                    </div>
+                    <div class="report-actions">
+                        <button class="view-btn">View Item</button>
+                        <button class="dismiss-btn">Dismiss</button>
+                    </div>
+                </div>
+            </div>
+        </section>  
+    </div>
+
+    <script src="admin-dash.js"></script>
+</body>
+
+</html>

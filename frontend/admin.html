@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="admin-panel.css">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <img src="logo.png" class="logo-img" alt="UPMart Logo">
+        </div>
+
+        <img src="profile.jpg" alt="Profile" class="profile-img">
+        <div class="profile-info">
+            <span class="profile-name">Admin</span>
+        </div>
+
+        <ul class="nav-links">
+            <li class="active">
+                <a href="admin.html" style="background: #e1f5da; color: black";><span>🏠︎</span> Dashboard</a>
+            </li>
+            <li>
+                <a href="admin-posts.html"><span>📮</span> Posts</a>
+            </li>
+            <li>
+                <a href="admin-reprt.html"><span>🔔</span> Reports</a>
+            </li>
+
+            <div class="logout-container">
+                <button class="logout-btn">Logout</button>
+            </div>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <nav class="top-nav">
+            <h1 style="font-size: 1.4rem; margin-top: 10px;">🏠︎ Dashboard</h1>
+            <div class="status-indicators">
+                <button class="icon-btn" id="notifTrigger"><span class="material-icons">notifications</span><span
+                        class="notif-badge"></span></button>
+            </div>
+        </nav>
+
+        <div class="content-row">
+            <div class="about-text">
+                <h1 style="color: maroon; margin-top: 30px;">Welcome, admin!</h1>
+                <p>Check what's currently happening.</p>
+            </div>
+        </div>
+
+        <section class="dashboard-grid">
+            <div class="left-column">
+                <section class="stat-card">
+                    <div class="progress-container">
+                        <svg class="progress-ring" width="80" height="80">
+                            <circle class="ring-bg" cx="40" cy="40" r="35"></circle>
+                            <circle class="ring-fill" cx="40" cy="40" r="35"></circle>
+                        </svg>
+                        <div class="percentage-label">
+                            <span class="percent">85%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-details">
+                        <span class="stat-title">Bought Items</span>
+                        <h2 class="stat-number">15</h2>
+                        <div class="stat-badge positive">
+                            <span class="material-icons">arrow_drop_up</span> 8.01%
+                        </div>
+                    </div>
+                    <div class="progress-container">
+                        <svg class="progress-ring" width="80" height="80">
+                            <circle class="ring-bg" cx="40" cy="40" r="35"></circle>
+                            <circle class="ring-fill" cx="40" cy="40" r="35"></circle>
+                        </svg>
+                        <div class="percentage-label">
+                            <span class="percent">59%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-details">
+                        <span class="stat-title">Sold Items</span>
+                        <h2 class="stat-number">23</h2>
+                        <div class="stat-badge positive">
+                            <span class="material-icons">arrow_drop_up</span> 2.9%
+                        </div>
+                    </div>
+                </section>
+                <div class="tops-container">
+                    <span style="font-weight: bold;">Top Sellers</span>
+                </div>
+                <div class="topb-container">
+                    <h4 style="font-weight: bold; margin-left: 280px;">Top Buyers</h4>
+                </div>
+            </div>
+
+            <div class="admin-main-grid">
+                <div class="admin-left-col">
+                    <div class="users">
+                        <h3>Users</h3>
+                    </div>
+                </div>
+
+                <div class="admin-right-col">
+                    <div class="chart-container">
+                        <h3>Top Categories</h3>
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy;2026 UPMart. All rights reserved.</p>
+    </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="admin-dash.js"></script>
+</body>
+
+</html>

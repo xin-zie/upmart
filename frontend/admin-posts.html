@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="admin-panel.css">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <img src="logo.png" class="logo-img" alt="UPMart Logo">
+        </div>
+
+        <img src="profile.jpg" alt="Profile" class="profile-img">
+        <div class="profile-info">
+            <span class="profile-name">Admin</span>
+        </div>
+
+        <ul class="nav-links">
+            <li class="active">
+                <a href="admin.html"><span>🏠︎</span> Dashboard</a>
+            </li>
+            <li>
+                <a href="admin-posts.html" ; style="background: #e1f5da; color: black" ;><span>📮</span> Posts</a>
+            </li>
+            <li>
+                <a href="admin-reprt.html"><span>🔔</span> Reports</a>
+            </li>
+
+            <div class="logout-container">
+                <button class="logout-btn">Logout</button>
+            </div>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <nav class="top-nav">
+            <h1 style="font-size: 1.4rem; margin-top: 10px;">📮 Posts</h1>
+            <div class="status-indicators">
+                <button class="icon-btn" id="notifTrigger" style="margin-left: 50px;"><span class="material-icons">notifications</span><span
+                        class="notif-badge"></span></button>
+            </div>
+        </nav>
+
+        <div class="content-row">
+            <div class="about-text">
+                <p>Scan through pending posts from sellers.</p>
+            </div>
+        </div>
+
+        <section class="dashboard-grid admin-review-grid">
+            <div class="posts-review-container">
+                <div class="review-header">
+                    <h3>Pending Posts</h3>
+                    <span class="count-badge">3 Pending</span>
+                </div>
+
+                <div class="posts-list" id="pendingPosts">
+                    <div class="post-item" id="post-101"
+                        onclick="showPreview('Calculus 7th Edition', 'Juan Dela Cruz', '₱500', 'Essential for Math 21. Slight wear on the cover but pages are clean.', 'calc.jpg')">
+                        <div class="post-details">
+                            <img src="calc.jpg" alt="Product" class="item-img">
+                            <div class="item-info">
+                                <h4>Calculus 7th Edition</h4>
+                                <p>Seller: <strong>Juan Dela Cruz</strong> • ₱500</p>
+                                <span class="category-tag">Books</span>
+                            </div>
+                        </div>
+                        <div class="post-actions">
+                            <button class="approve-btn" onclick="event.stopPropagation(); handlePost(101, 'approved')">
+                                <span class="material-icons">check</span> Approve
+                            </button>
+                            <button class="delete-btn" onclick="event.stopPropagation(); handlePost(101, 'deleted')">
+                                <span class="material-icons">delete_outline</span> Delete
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="post-item" id="post-102"
+                        onclick="showPreview('Clothes Bundle', 'May Lics', '₱50-100', 'Assorted pre-loved clothes in good condition. Sizes range from S to M.', 'cloths.jpg')">
+                        <div class="post-details">
+                            <img src="cloths.jpg" alt="Product" class="item-img">
+                            <div class="item-info">
+                                <h4>Clothes</h4>
+                                <p>Seller: <strong>May Lics</strong> • ₱50-100</p>
+                                <span class="category-tag">Clothes</span>
+                            </div>
+                        </div>
+                        <div class="post-actions">
+                            <button class="approve-btn" onclick="event.stopPropagation(); handlePost(102, 'approved')">
+                                <span class="material-icons">check</span> Approve
+                            </button>
+                            <button class="delete-btn" onclick="event.stopPropagation(); handlePost(102, 'deleted')">
+                                <span class="material-icons">delete_outline</span> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-panel" id="previewPanel">
+                <div class="empty-state" id="emptyState">
+                    <span class="material-icons">manage_search</span>
+                    <p>Select a post to inspect details</p>
+                </div>
+
+                <div class="preview-content" id="previewContent" style="display: none;">
+                    <img id="prevImg" src="" alt="Product Large">
+                    <div class="preview-text">
+                        <h2 id="prevTitle">Item Title</h2>
+                        <div class="prev-meta">
+                            <span id="prevSeller">Seller</span> • <span id="prevPrice">Price</span>
+                        </div>
+                        <hr>
+                        <h5>Description</h5>
+                        <p id="prevDesc">Full description...</p>
+                    </div>
+
+                    <div class="preview-actions">
+                        <button class="approve-btn-large">Confirm Approval</button>
+                        <button class="delete-btn-large">Reject & Notify Seller</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="admin-dash.js"></script>
+</body>
+
+</html>
