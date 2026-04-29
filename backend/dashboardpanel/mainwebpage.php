@@ -54,7 +54,7 @@ $wish_results = $wish_stmt->get_result();
             <li class="active">
                 <a href="mainweb.php"><span>🏠︎</span>Dashboard</a>
             </li>
-            <li><a href="marketplace.php"><span>🛒</span>Marketplace</a></li>
+            <li><a href="../marketplace/marketplace.php"><span>🛒</span>Marketplace</a></li>
             <div class="logout-container">
                 <a href="logout.php" class="logout-btn" style="text-decoration: none; display: block; text-align: center;">Logout</a>
             </div>
