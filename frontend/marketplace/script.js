@@ -1,208 +1,395 @@
 /**
- * UPMart Marketplace - Main Logic
+ * UPMart Marketplace — Main Logic
  */
 
-// 1. GLOBAL FUNCTIONS (Defined outside so HTML onclick can find them)
+// ─────────────────────────────────────────────
+// 1. GLOBAL: fillEditForm (called from inline onclick)
+// ─────────────────────────────────────────────
 function fillEditForm(product) {
     const form = document.querySelector('.form-section form');
     if (!form) return;
 
-    // Map data to inputs
-    form.querySelector('[name="title"]').value = product.title;
-    form.querySelector('[name="price"]').value = product.price;
+    form.querySelector('[name="title"]').value       = product.title;
+    form.querySelector('[name="price"]').value       = product.price;
     form.querySelector('[name="description"]').value = product.description;
     form.querySelector('[name="category_id"]').value = product.category_id;
-    
-    // Change the button to "Update" mode
-    const submitBtn = form.querySelector('.post-btn');
-    submitBtn.innerText = "Update Listing";
-    submitBtn.name = "update_post";
 
-    // Inject hidden product_id so the backend knows which one to fix
+    const submitBtn  = form.querySelector('.post-btn');
+    submitBtn.innerText = "Update Listing";
+    submitBtn.name      = "update_post";
+
     let idInput = form.querySelector('[name="product_id"]');
     if (!idInput) {
-        idInput = document.createElement('input');
+        idInput      = document.createElement('input');
         idInput.type = 'hidden';
         idInput.name = 'product_id';
         form.appendChild(idInput);
     }
     idInput.value = product.product_id;
 
-    // Scroll smoothly to form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('.main-content').scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ─────────────────────────────────────────────
+// 2. DOM READY
+// ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    /**
-     * 2. SELECTORS & INITIALIZATION
-     */
-    const elements = {
-        // Mode Switchers
-        btnBuyer: document.getElementById('mode-buyer'),
-        btnSeller: document.getElementById('mode-seller'),
-        
-        // Views
-        viewBuyer: document.getElementById('view-buyer'),
-        viewSeller: document.getElementById('view-seller'),
-        viewCart: document.getElementById('view-cart'),
-        viewTransactions: document.getElementById('view-transactions'),
-        
-        // Navigation & Global UI
-        dynamicLink: document.getElementById('dynamic-link'),
-        navMarketplace: document.querySelector('.nav-links li:nth-child(2)'),
-        navLinks: document.querySelectorAll('.nav-links li'),
-        productSearch: document.getElementById('product-search'),
-        socialFeed: document.querySelector('.social-feed'),
-        
-        // Text/Header Elements
-        greet: document.getElementById('greeting'),
-        subgreet: document.getElementById('sub-greeting'),
-        categoryNav: document.getElementById('category-nav'),
+
+    // ── Selectors ──────────────────────────────
+    const el = {
+        btnBuyer:       document.getElementById('mode-buyer'),
+        btnSeller:      document.getElementById('mode-seller'),
+        viewBuyer:      document.getElementById('view-buyer'),
+        viewSeller:     document.getElementById('view-seller'),
+        viewCart:       document.getElementById('view-cart'),
+        viewTxn:        document.getElementById('view-transactions'),
+        dynamicLink:    document.getElementById('dynamic-link'),
+        navMarketplace: document.querySelector('#nav-marketplace'),
+        navLinks:       document.querySelectorAll('.nav-links li'),
+        productSearch:  document.getElementById('product-search'),
+        socialFeed:     document.querySelector('.social-feed'),
+        greet:          document.getElementById('greeting'),
+        subgreet:       document.getElementById('sub-greeting'),
+        categoryNav:    document.getElementById('category-nav'),
         welcomeSection: document.querySelector('.welcome'),
-        
-        // Product Listing Form
         categorySelect: document.getElementById('category-select'),
-        otherCategoryContainer: document.getElementById('other-category-container'),
-        uploadArea: document.getElementById('dropzone-area'),
-        fileInput: document.getElementById('file-input'),
-        previewContainer: document.getElementById('image-preview-container'),
-        
-        // Lightbox
-        overlay: document.getElementById('image-overlay'),
-        overlayImg: document.getElementById('overlay-img'),
-        closeOverlay: document.querySelector('.close-overlay')
+        otherCat:       document.getElementById('other-category-container'),
+        uploadArea:     document.getElementById('dropzone-area'),
+        fileInput:      document.getElementById('file-input'),
+        previewCont:    document.getElementById('image-preview-container'),
+        overlay:        document.getElementById('image-overlay'),
+        overlayImg:     document.getElementById('overlay-img'),
+        closeOverlay:   document.querySelector('.close-overlay'),
+        // Messaging
+        msgFloat:       document.getElementById('msg-float-btn'),
+        msgModal:       document.getElementById('msg-modal'),
+        closeMsg:       document.getElementById('close-msg'),
+        msgTitle:       document.getElementById('msg-title'),
+        msgConvos:      document.getElementById('msg-conversations'),
+        msgThreadView:  document.getElementById('msg-thread-view'),
+        msgThread:      document.getElementById('msg-thread'),
+        msgInput:       document.getElementById('msg-input'),
+        msgSend:        document.getElementById('msg-send'),
+        msgBack:        document.getElementById('msg-back'),
     };
 
-    /**
-     * 3. VIEW MANAGEMENT
-     */
+    // Active messaging context
+    let activeProductId = null;
+    let activeSellerId  = null;
+    let msgPollTimer    = null;
+
+    // ─────────────────────────────────────────────
+    // 3. VIEW MANAGEMENT
+    // ─────────────────────────────────────────────
     function hideAllViews() {
-        const views = [
-            elements.viewBuyer, elements.viewSeller, 
-            elements.viewCart, elements.viewTransactions, 
-            elements.welcomeSection, elements.categoryNav
-        ];
-        views.forEach(el => { if(el) el.style.display = 'none'; });
-        elements.navLinks.forEach(li => li.classList.remove('active'));
+        [el.viewBuyer, el.viewSeller, el.viewCart, el.viewTxn,
+         el.welcomeSection, el.categoryNav].forEach(v => { if (v) v.style.display = 'none'; });
+        el.navLinks.forEach(li => li.classList.remove('active'));
     }
 
     function switchMode(isSeller) {
         hideAllViews();
-        if (elements.welcomeSection) elements.welcomeSection.style.display = 'block';
-        if (elements.navMarketplace) elements.navMarketplace.classList.add('active');
+        if (el.welcomeSection) el.welcomeSection.style.display = 'block';
+        if (el.navMarketplace) el.navMarketplace.classList.add('active');
 
         if (isSeller) {
-            if (elements.viewSeller) elements.viewSeller.style.display = 'block';
-            if (elements.categoryNav) elements.categoryNav.style.display = 'none'; 
-            elements.greet.innerText = "Seller Mode";
-            elements.subgreet.innerText = "Manage your shop and list new products.";
-            elements.dynamicLink.innerHTML = '<span class="icon">📈</span> My Transactions';
-            elements.btnSeller.classList.add('active');
-            elements.btnBuyer.classList.remove('active');
+            if (el.viewSeller)  el.viewSeller.style.display  = 'block';
+            if (el.categoryNav) el.categoryNav.style.display = 'none';
+            // el.greet.innerText    = "Seller Mode";
+            el.subgreet.innerText = "Manage your shop and list new products.";
+            el.dynamicLink.innerHTML = '<span class="icon">📈</span> My Transactions';
+            el.btnSeller.classList.add('active');
+            el.btnBuyer.classList.remove('active');
         } else {
-            if (elements.viewBuyer) elements.viewBuyer.style.display = 'block';
-            if (elements.categoryNav) elements.categoryNav.style.display = 'flex'; 
-            elements.greet.innerText = "Buyer Mode";
-            elements.subgreet.innerText = "Browse and find the products you need!";
-            elements.dynamicLink.innerHTML = '<span class="icon">🛍️</span> My Cart';
-            elements.btnBuyer.classList.add('active');
-            elements.btnSeller.classList.remove('active');
+            if (el.viewBuyer)   el.viewBuyer.style.display   = 'block';
+            if (el.categoryNav) el.categoryNav.style.display = 'flex';
+            // el.greet.innerText    = "Buyer Mode";
+            el.subgreet.innerText = "Browse and find the products you need!";
+            el.dynamicLink.innerHTML = '<span class="icon">🛍️</span> My Orders';
+            el.btnBuyer.classList.add('active');
+            el.btnSeller.classList.remove('active');
         }
     }
 
-    /**
-     * 4. LIVE FEED LOGIC (SEARCH & FILTER)
-     */
+    // ─────────────────────────────────────────────
+    // 4. LIVE FEED (search + filter)
+    // ─────────────────────────────────────────────
     function updateFeed() {
         const activePill = document.querySelector('.filter-pill.active');
-        const categoryId = activePill ? activePill.getAttribute('data-category') : 'all';
-        const searchTerm = elements.productSearch ? elements.productSearch.value : '';
-        
-        fetch(`fetch_products.php?category=${categoryId}&search=${encodeURIComponent(searchTerm)}`)
-            .then(res => res.text())
-            .then(data => {
-                if (elements.socialFeed) elements.socialFeed.innerHTML = data;
-            });
+        const category   = activePill ? activePill.getAttribute('data-category') : 'all';
+        const search     = el.productSearch ? el.productSearch.value : '';
+
+        fetch(`fetch_products.php?category=${category}&search=${encodeURIComponent(search)}`)
+            .then(r => r.text())
+            .then(html => { if (el.socialFeed) el.socialFeed.innerHTML = html; });
     }
 
-    // Initialize Filter Pills
-    const filterPills = document.querySelectorAll('.filter-pill');
-    filterPills.forEach(pill => {
+    document.querySelectorAll('.filter-pill').forEach(pill => {
         pill.addEventListener('click', () => {
-            filterPills.forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
             updateFeed();
         });
     });
 
-    if (elements.productSearch) {
-        elements.productSearch.addEventListener('input', updateFeed);
+    if (el.productSearch) el.productSearch.addEventListener('input', updateFeed);
+
+    // ─────────────────────────────────────────────
+    // 5. BUY ITEM BUTTON (delegated — works after AJAX reload)
+    // ─────────────────────────────────────────────
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.buy-btn');
+        if (!btn) return;
+
+        const productId   = btn.dataset.productId;
+        const sellerId    = btn.dataset.sellerId;
+        const productName = btn.dataset.productName;
+
+        // Place the order via AJAX
+        const fd = new FormData();
+        fd.append('place_order', '1');
+        fd.append('product_id',  productId);
+        fd.append('seller_id',   sellerId);
+
+        fetch('handle_actions.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Order placed! Chat with the seller below.');
+                } else {
+                    showToast(data.message || 'Could not place order.');
+                }
+                // Open messaging popup regardless
+                openChat(productId, sellerId, productName);
+            })
+            .catch(() => {
+                // Still open chat even on network error
+                openChat(productId, sellerId, productName);
+            });
+    });
+
+    // ─────────────────────────────────────────────
+    // 6. CONFIRM DEAL BUTTON (seller)
+    // ─────────────────────────────────────────────
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.confirm-deal-btn');
+        if (!btn) return;
+
+        if (!confirm('Confirm this deal? The product will be marked as Sold.')) return;
+
+        const fd = new FormData();
+        fd.append('confirm_deal', '1');
+        fd.append('order_id', btn.dataset.orderId);
+
+        fetch('handle_actions.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Deal confirmed!');
+                    btn.closest('tr').querySelector('.status-pill').textContent = 'Completed';
+                    btn.closest('tr').querySelector('.status-pill').className   = 'status-pill success';
+                    btn.replaceWith(Object.assign(document.createElement('span'),
+                        { textContent: '✓ Done', style: 'color:#27ae60; font-size:0.8rem;' }));
+                }
+            });
+    });
+
+    // ─────────────────────────────────────────────
+    // 7. MESSAGING POPUP
+    // ─────────────────────────────────────────────
+
+    // Open/close modal
+    el.msgFloat.addEventListener('click', () => {
+        el.msgModal.classList.toggle('open');
+        if (el.msgModal.classList.contains('open')) {
+            loadConversations();
+        }
+    });
+    el.closeMsg.addEventListener('click', () => {
+        el.msgModal.classList.remove('open');
+        clearInterval(msgPollTimer);
+    });
+
+    // Back to conversation list
+    el.msgBack.addEventListener('click', () => {
+        el.msgThreadView.style.display = 'none';
+        el.msgConvos.style.display     = 'block';
+        el.msgTitle.textContent        = 'Messages';
+        clearInterval(msgPollTimer);
+        activeProductId = null;
+        activeSellerId  = null;
+    });
+
+    function loadConversations() {
+        el.msgConvos.innerHTML = '<div style="padding:20px; text-align:center; color:#aaa; font-size:0.85rem;">Loading...</div>';
+        el.msgConvos.style.display     = 'block';
+        el.msgThreadView.style.display = 'none';
+
+        fetch('handle_actions.php?get_conversations=1')
+            .then(r => r.json())
+            .then(convos => {
+                if (!convos.length) {
+                    el.msgConvos.innerHTML = '<div style="padding:20px; text-align:center; color:#aaa; font-size:0.85rem;">No conversations yet.</div>';
+                    return;
+                }
+                el.msgConvos.innerHTML = '';
+                convos.forEach(c => {
+                    const div = document.createElement('div');
+                    div.className = 'convo-item';
+                    div.innerHTML = `<strong>${c.other_user_name}</strong>
+                                     <span>${c.product_name}</span>
+                                     <span style="display:block; color:#aaa; font-size:0.72rem; margin-top:2px;">${c.last_message}</span>`;
+                    div.addEventListener('click', () =>
+                        openChat(c.product_id, c.other_user_id, c.product_name)
+                    );
+                    el.msgConvos.appendChild(div);
+                });
+            });
     }
 
-    /**
-     * 5. UI INTERACTION & MEDIA
-     */
+    function openChat(productId, otherUserId, productName) {
+        activeProductId = productId;
+        activeSellerId  = otherUserId;
 
-    // Sidebar Navigation
-    if (elements.dynamicLink) {
-        elements.dynamicLink.addEventListener('click', (e) => {
+        el.msgTitle.textContent        = productName;
+        el.msgConvos.style.display     = 'none';
+        el.msgThreadView.style.display = 'flex';
+        el.msgModal.classList.add('open');
+
+        loadThread();
+        clearInterval(msgPollTimer);
+        msgPollTimer = setInterval(loadThread, 3000); // poll every 3s
+    }
+
+    function loadThread() {
+        if (!activeProductId || !activeSellerId) return;
+
+        fetch(`handle_actions.php?get_messages=1&product_id=${activeProductId}&other_user=${activeSellerId}`)
+            .then(r => r.json())
+            .then(msgs => {
+                const atBottom = el.msgThread.scrollHeight - el.msgThread.scrollTop <= el.msgThread.clientHeight + 50;
+
+                el.msgThread.innerHTML = '';
+                if (!msgs.length) {
+                    el.msgThread.innerHTML = '<div class="msg-empty">No messages yet. Say hello!</div>';
+                    return;
+                }
+                msgs.forEach(m => {
+                    const bubble = document.createElement('div');
+                    bubble.className = `msg-bubble ${m.is_mine ? 'mine' : 'theirs'}`;
+                    const time = new Date(m.sent_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+                    bubble.innerHTML = `${escapeHtml(m.message)}<span class="msg-time">${time}</span>`;
+                    el.msgThread.appendChild(bubble);
+                });
+
+                if (atBottom) el.msgThread.scrollTop = el.msgThread.scrollHeight;
+            });
+    }
+
+    // Send message
+    function sendMessage() {
+        const text = el.msgInput.value.trim();
+        if (!text || !activeProductId || !activeSellerId) return;
+
+        const fd = new FormData();
+        fd.append('send_message',  '1');
+        fd.append('product_id',    activeProductId);
+        fd.append('receiver_id',   activeSellerId);
+        fd.append('message',       text);
+
+        el.msgInput.value = '';
+        fetch('handle_actions.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => { if (data.success) loadThread(); });
+    }
+
+    el.msgSend.addEventListener('click', sendMessage);
+    el.msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+    // ─────────────────────────────────────────────
+    // 8. SIDEBAR NAVIGATION
+    // ─────────────────────────────────────────────
+    if (el.dynamicLink) {
+        el.dynamicLink.addEventListener('click', e => {
             e.preventDefault();
             hideAllViews();
-            const isSellerMode = elements.btnSeller.classList.contains('active');
-            if (isSellerMode) {
-                elements.viewTransactions.style.display = 'block';
+            const isSeller = el.btnSeller.classList.contains('active');
+            if (isSeller) {
+                el.viewTxn.style.display = 'block';
             } else {
-                elements.viewCart.style.display = 'block';
+                el.viewCart.style.display = 'block';
             }
-            elements.dynamicLink.parentElement.classList.add('active');
+            el.dynamicLink.parentElement.classList.add('active');
         });
     }
 
-    if (elements.navMarketplace) {
-        elements.navMarketplace.addEventListener('click', (e) => {
+    if (el.navMarketplace) {
+        el.navMarketplace.querySelector('a').addEventListener('click', e => {
             e.preventDefault();
-            switchMode(elements.btnSeller.classList.contains('active'));
+            switchMode(el.btnSeller.classList.contains('active'));
         });
     }
 
-    elements.btnBuyer.addEventListener('click', () => switchMode(false));
-    elements.btnSeller.addEventListener('click', () => switchMode(true));
+    el.btnBuyer.addEventListener('click',  () => switchMode(false));
+    el.btnSeller.addEventListener('click', () => switchMode(true));
 
-    // Form: Category "Others" Toggle
-    if (elements.categorySelect) {
-        elements.categorySelect.addEventListener('change', function() {
-            elements.otherCategoryContainer.style.display = (this.value === "4") ? 'block' : 'none';
+    // ─────────────────────────────────────────────
+    // 9. FORM HELPERS
+    // ─────────────────────────────────────────────
+    if (el.categorySelect) {
+        el.categorySelect.addEventListener('change', function () {
+            el.otherCat.style.display = (this.value === '4') ? 'block' : 'none';
         });
     }
 
-    // Form: Image Selection Preview
-    if (elements.uploadArea) {
-        elements.uploadArea.onclick = () => elements.fileInput.click();
-        elements.fileInput.onchange = (e) => {
-            elements.previewContainer.innerHTML = ''; 
+    if (el.uploadArea) {
+        el.uploadArea.addEventListener('click', () => el.fileInput.click());
+        el.fileInput.addEventListener('change', e => {
+            el.previewCont.innerHTML = '';
             Array.from(e.target.files).forEach(file => {
                 const reader = new FileReader();
-                reader.onload = (ev) => {
+                reader.onload = ev => {
                     const img = document.createElement('img');
-                    img.src = ev.target.result;
-                    img.className = 'preview-img'; 
-                    elements.previewContainer.appendChild(img);
+                    img.src       = ev.target.result;
+                    img.className = 'preview-img';
+                    el.previewCont.appendChild(img);
                 };
                 reader.readAsDataURL(file);
             });
-        };
+        });
     }
 
-    // Lightbox Functionality
-    document.addEventListener('click', (e) => {
+    // ─────────────────────────────────────────────
+    // 10. LIGHTBOX
+    // ─────────────────────────────────────────────
+    document.addEventListener('click', e => {
         if (e.target.classList.contains('clickable-img')) {
-            elements.overlayImg.src = e.target.src;
-            elements.overlay.style.display = 'flex';
+            el.overlayImg.src           = e.target.src;
+            el.overlay.style.display    = 'flex';
         }
     });
+    if (el.closeOverlay) el.closeOverlay.addEventListener('click', () => el.overlay.style.display = 'none');
+    if (el.overlay) el.overlay.addEventListener('click', e => {
+        if (e.target === el.overlay) el.overlay.style.display = 'none';
+    });
 
-    if (elements.closeOverlay) elements.closeOverlay.onclick = () => elements.overlay.style.display = 'none';
-    if (elements.overlay) elements.overlay.onclick = (e) => {
-        if (e.target === elements.overlay) elements.overlay.style.display = 'none';
-    };
+    // ─────────────────────────────────────────────
+    // 11. HELPERS
+    // ─────────────────────────────────────────────
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function showToast(msg) {
+        const t = document.createElement('div');
+        t.textContent = msg;
+        Object.assign(t.style, {
+            position:'fixed', bottom:'100px', right:'30px', background:'#1a1a2e', color:'white',
+            padding:'12px 20px', borderRadius:'12px', fontSize:'0.85rem', fontWeight:'600',
+            zIndex:'9999', boxShadow:'0 4px 15px rgba(0,0,0,0.2)', transition:'opacity 0.4s'
+        });
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 3000);
+    }
+
 });

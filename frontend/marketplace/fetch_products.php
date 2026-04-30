@@ -4,12 +4,12 @@ include 'db_connect.php';
 $category = $_GET['category'] ?? 'all';
 $search = $_GET['search'] ?? '';
 
-$query = "SELECT p.*, u.full_name, c.category_name, 
+$query = "SELECT p.*, u.full_name, u.profile_pic, c.category_name, 
           (SELECT image_path FROM media WHERE product_id = p.product_id LIMIT 1) as product_img 
           FROM products p 
           JOIN users u ON p.seller_id = u.user_id 
           JOIN categories c ON p.category_id = c.category_id 
-          WHERE p.status = 'Available'";
+          WHERE p.status = 'Available' AND p.approval_status = 'Approved'";
 
 if ($category !== 'all') {
     $cat_id = mysqli_real_escape_string($conn, $category);
@@ -26,8 +26,8 @@ $result = $conn->query($query);
 
 if ($result && $result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
-        $img = !empty($row['product_img']) ? $row['product_img'] : 'uploads/default.jpg';
-        $profile= !empty($row['profile_pic']) ? $row['profile_pic'] : 'uploads/user.jpg';
+        $img     = !empty($row['product_img'])  ? $row['product_img']  : 'uploads/default.jpg';
+        $profile = !empty($row['profile_pic'])  ? $row['profile_pic']  : 'uploads/user.jpg';
         echo '
         <article class="post-card">
             <div class="post-header">
@@ -38,18 +38,18 @@ if ($result && $result->num_rows > 0) {
                         <span class="post-time"><span class="cat-tag">'.$row['category_name'].'</span></span>
                     </div>
                 </div>
-                <div class="post-price">₱'.number_format($row['price'], 2).'</div>
+                <div class="post-price">&#8369;'.number_format($row['price'], 2).'</div>
             </div>
             <p class="product-description">'.$row['title'].'</p>
             <div class="post-gallery single">
                 <img src="'.$img.'" class="clickable-img" alt="Product">
             </div>
-            <form action="handle_actions.php" method="POST">
-                <input type="hidden" name="product_id" value="'.$row['product_id'].'">
-                <button type="submit" name="add_to_cart" class="message-btn">
-                    <i class="fas fa-paper-plane"></i> Message Seller
-                </button>
-            </form>
+            <button class="buy-btn"
+                data-product-id="'.$row['product_id'].'"
+                data-seller-id="'.$row['seller_id'].'"
+                data-product-name="'.htmlspecialchars($row['title'], ENT_QUOTES).'">
+                <i class="fas fa-shopping-bag"></i> Buy Item
+            </button>
         </article>';
     }
 } else {
