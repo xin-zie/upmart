@@ -4,20 +4,21 @@ include '../db_connect.php';
 
 // 1. Session Security
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: ../index.php");
     exit();
 }
 
 $user_id = $_SESSION['user_id'];
 
 // 2. Fetch User Data
-$query = "SELECT full_name, profile_pic FROM users WHERE user_id = ?";
+$query = "SELECT full_name, profile_pic, is_setup_complete FROM users WHERE user_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 
-$profile_img = !empty($user['profile_pic']) ? $user['profile_pic'] : "../images/profile.jpg"; 
+$profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'] : "../images/profile.jpg";
+$show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
 
 // 3. Fetch Wishlist Items (Public - Everyone sees everything)
 $wish_query = "SELECT w.*, u.full_name FROM wishlist w 
@@ -30,22 +31,113 @@ $wish_results = $wish_stmt->get_result();
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UPMart | Dashboard</title>
-    <link rel="stylesheet" href="mainpanel.css">
-    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="../dashboard/main-panel.css">
+    <link rel="icon" href="../images/favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
+
 <body>
+    <?php if ($show_setup_overlay): ?>
+        <style>
+            body {
+                overflow: hidden !important;
+                height: 100vh !important;
+            }
+
+            .setup-full-overlay {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                background: rgba(0, 0, 0, 0.4) !important;
+                backdrop-filter: blur(15px) !important;
+                -webkit-backdrop-filter: blur(15px) !important;
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                z-index: 999999 !important;
+            }
+
+            .setup-modal {
+                background: white !important;
+                padding: 35px !important;
+                border-radius: 20px !important;
+                width: 95% !important;
+                max-width: 500px !important;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3) !important;
+            }
+
+            .setup-form {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                text-align: left;
+            }
+
+            .setup-form label {
+                font-weight: 600;
+                color: #444;
+                margin-bottom: -10px;
+            }
+
+            .setup-form input,
+            .setup-form textarea {
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 10px;
+            }
+
+            .btn-finish {
+                background: maroon !important;
+                color: white !important;
+                padding: 15px;
+                border: none;
+                border-radius: 12px;
+                font-weight: bold;
+                cursor: pointer;
+                margin-top: 10px;
+            }
+        </style>
+
+        <div class="setup-full-overlay">
+            <div class="setup-modal">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="../images/logo.png" style="width: 100px;">
+                    <h2 style="color: maroon; margin: 10px 0 0 0;">Complete Your Profile</h2>
+                    <p style="color: #666; font-size: 0.9rem;">Set up your details to start using UPMart.</p>
+                </div>
+
+                <form action="../process_setup.php" method="POST" enctype="multipart/form-data" class="setup-form">
+                    <label>Profile Picture</label>
+                    <input type="file" name="profile_pic" accept="image/*" required>
+
+                    <label>Bio</label>
+                    <textarea name="bio" placeholder="Tell us about yourself..." required></textarea>
+
+                    <label>Phone Number</label>
+                    <input type="text" name="phone_number" placeholder="e.g. 09123456789" required>
+
+                    <button type="submit" class="btn-finish">Save</button>
+                </form>
+            </div>
+        </div>
+    <?php endif; ?>
+
     <div class="sidebar">
         <div class="sidebar-brand">
             <img src="../images/logo.png" class="logo-img sidebar-logo" alt="UPMart Logo">
         </div>
 
-        <img src="<?= $profile_img ?>" alt="Profile" class="profile-img">
-        
+        <div class="profile-container">
+            <img src="<?= $profile_pic ?>" class="profile-img">
+        </div>
+
         <div class="profile-info">
             <span class="profile-name"><?= htmlspecialchars($user['full_name']) ?></span>
         </div>
@@ -54,7 +146,7 @@ $wish_results = $wish_stmt->get_result();
             <li class="active">
                 <a href="mainweb.php"><span>🏠︎</span>Dashboard</a>
             </li>
-            <li><a href="../marketplace/marketplace.php"><span>🛒</span>Marketplace</a></li>
+            <li><a href="marketplace.php"><span>🛒</span>Marketplace</a></li>
             <div class="logout-container">
                 <a href="logout.php" class="logout-btn" style="text-decoration: none; display: block; text-align: center;">Logout</a>
             </div>
@@ -87,14 +179,14 @@ $wish_results = $wish_stmt->get_result();
                     </div>
                     <div class="wish-grid">
                         <?php if ($wish_results->num_rows > 0): ?>
-                            <?php while($wish = $wish_results->fetch_assoc()): ?>
+                            <?php while ($wish = $wish_results->fetch_assoc()): ?>
                                 <div class="wish-card">
                                     <div class="wish-info">
                                         <span class="category-tag"><?= htmlspecialchars($wish['category']) ?></span>
                                         <h4><?= htmlspecialchars($wish['item_name']) ?></h4>
                                         <p>Requested by: <strong><?= htmlspecialchars($wish['full_name']) ?></strong></p>
                                     </div>
-                                   <button class="match-btn" onclick="handleMatch(<?= $wish['wish_id'] ?>)">I have this!</button>
+                                    <button class="match-btn" onclick="handleMatch(<?= $wish['wish_id'] ?>)">I have this!</button>
                                 </div>
                             <?php endwhile; ?>
                         <?php else: ?>
@@ -128,14 +220,10 @@ $wish_results = $wish_stmt->get_result();
                 <div id="bulletinList" class="bulletin-list"></div>
             </div>
         </section>
-
-        <div class="footer">
-            <p>&copy;2026 UPMart. All rights reserved.</p>
-        </div>
     </div>
-   
+
     <div id="reportModal" class="modal-overlay">
-        <div class="modal-content"> 
+        <div class="modal-content">
             <div class="modal-header">
                 <h3>Report Issue</h3>
                 <span class="close-modal" id="closeModal">&times;</span>
@@ -187,7 +275,8 @@ $wish_results = $wish_stmt->get_result();
             </form>
         </div>
     </div>
-    
+
     <script src="maindash.js"></script>
 </body>
+
 </html>
