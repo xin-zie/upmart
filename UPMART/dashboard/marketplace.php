@@ -91,13 +91,20 @@ $profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'
 
         <div class="category-wrapper" id="category-nav">
             <button class="filter-pill active" data-category="all">All Posts</button>
-            <button class="filter-pill" data-category="1" style="margin-left: -10px;">Dorm Essentials</button>
-            <button class="filter-pill" data-category="2" style="margin-left: -10px;">Arki Mats</button>
-            <button class="filter-pill" data-category="3" style="margin-left: -10px;">Lab Essentials</button>
-            <button class="filter-pill" data-category="4" style="margin-left: -10px;">Others</button>
+            <button class="filter-pill" data-category="1">Dorm Essentials</button>
+            <button class="filter-pill" data-category="2">Electronics</button>
+            <button class="filter-pill" data-category="3">Lab Essentials</button>
+            <button class="filter-pill" data-category="4">Fashion</button>
+            <button class="filter-pill" data-category="5">Books</button>
+            <button class="filter-pill" data-category="6">Services</button>
+            <button class="filter-pill" data-category="7">Foods</button>
+            <button class="filter-pill" data-category="8">School Supplies</button>
+            <button class="filter-pill" data-category="9">Art Materials</button>
+            <button class="filter-pill" data-category="10">Others</button>
         </div>
 
         <!-- BUYER VIEW -->
+        <div class="views-container">
         <div id="view-buyer" class="view-content active">
             <div class="social-feed">
                 <?php
@@ -111,12 +118,20 @@ $profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'
                             ORDER BY p.created_at DESC";
                 $products = $conn->query($query);
                 while ($row = $products->fetch_assoc()):
-                    $img     = !empty($row['product_img']) ? $row['product_img'] : 'uploads/default.jpg';
+                    // Fetch ALL images for this product
+                    $imgs_q = $conn->query("SELECT image_path FROM media WHERE product_id = {$row['product_id']}");
+                    $images = [];
+                    while ($ir = $imgs_q->fetch_assoc()) { $images[] = $ir['image_path']; }
+                    if (empty($images)) $images[] = '../images/default.jpg';
+
+                    $count = count($images);
+                    $gallery_class = $count === 1 ? 'single' : ($count === 2 ? 'two' : 'multi');
+                    $seller_pic = !empty($row['profile_pic']) ? '../images/' . $row['profile_pic'] : '../images/profile.jpg';
                 ?>
                     <article class="post-card">
                         <div class="post-header">
                             <div class="seller-meta">
-                                <div class="mini-avatar" style="background-image:url('<?php echo $profile_pic; ?>');"></div>
+                                <div class="mini-avatar" style="background-image:url('<?php echo $seller_pic; ?>');"></div>
                                 <div class="seller-details">
                                     <strong><?php echo htmlspecialchars($row['full_name']); ?></strong>
                                     <span class="post-time"><span class="cat-tag"><?php echo $row['category_name']; ?></span></span>
@@ -124,9 +139,12 @@ $profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'
                             </div>
                             <div class="post-price">&#8369;<?php echo number_format($row['price'], 2); ?></div>
                         </div>
-                        <p class="product-description"><?php echo htmlspecialchars($row['title']); ?></p>
-                        <div class="post-gallery single">
-                            <img src="<?php echo $img; ?>" class="clickable-img" alt="Product">
+                        <h5 class="product-description"><?php echo htmlspecialchars($row['title']); ?></h5>
+                        <p class="product-description"><?php echo htmlspecialchars($row['description']); ?></p>
+                        <div class="post-gallery <?php echo $gallery_class; ?>">
+                            <?php foreach ($images as $img): ?>
+                                <img src="<?php echo htmlspecialchars($img); ?>" class="clickable-img" alt="Product">
+                            <?php endforeach; ?>
                         </div>
                         <button class="buy-btn"
                             data-product-id="<?php echo $row['product_id']; ?>"
@@ -177,16 +195,22 @@ $profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'
                 <section class="bento-card form-section">
                     <h3 id="form-title" style="position:sticky; ">Create New Post</h3>
 
-                    <form action="handle_actions.php" method="POST" enctype="multipart/form-data">
-                        <input type="text" name="title" placeholder="Product Name" class="input-modern" required>
-                        <input type="number" name="price" placeholder="Price" class="input-modern" step="0.01" required>
-                        <textarea name="description" placeholder="Description" class="input-modern textarea"></textarea>
+                    <form id="product-form" action="handle_actions.php" method="POST" enctype="multipart/form-data">
+                        <input type="text"   name="title"       id="f-title" placeholder="Product Name" class="input-modern" required>
+                        <input type="number" name="price"       id="f-price" placeholder="Price (₱)"   class="input-modern" step="0.01" min="0" required>
+                        <textarea            name="description" id="f-desc"  placeholder="Description"  class="input-modern textarea"></textarea >
                         <select name="category_id" id="category-select" class="input-modern" required>
                             <option value="">Select Category</option>
                             <option value="1">Dorm Essentials</option>
-                            <option value="2">Arki Mats</option>
+                            <option value="2">Electronics</option>
                             <option value="3">Lab Essentials</option>
-                            <option value="4">Others</option>
+                            <option value="4">Fashion</option>
+                            <option value="5">Books</option>
+                            <option value="6">Services</option>
+                            <option value="7">Foods</option>
+                            <option value="8">School Supplies</option>
+                            <option value="9">Art Materials</option>
+                            <option value="10">Others</option>
                         </select>
                         <div id="other-category-container" style="display:none; margin-top:-10px;">
                             <input type="text" name="custom_category" placeholder="What kind of item is this?" class="input-modern">
@@ -200,10 +224,10 @@ $profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'
                         <div class="upload-area" id="dropzone-area">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <p>Drag & Drop or Click to upload image</p>
-                            <input type="file" name="product_image" id="file-input" hidden accept="image/*" multiple>
+                            <input type="file" name="product_images[]" id="file-input" hidden accept="image/*" multiple>
                         </div>
                         <div id="image-preview-container" class="preview-grid"></div>
-                        <button type="submit" name="create_post" class="post-btn">Publish Post</button>
+                        <button type="submit" name="create_post" id="form-submit-btn" class="post-btn">Publish Post</button>
                     </form>
                 </section>
             </div>
@@ -297,7 +321,7 @@ $profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'
                 </table>
             </div>
         </div>
-
+    </div><!-- end views-container -->
     </div><!-- end main-content -->
 
     <!-- FLOATING MESSAGE BUTTON -->

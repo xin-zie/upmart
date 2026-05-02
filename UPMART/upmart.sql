@@ -70,9 +70,15 @@ CREATE TABLE `categories` (
 
 INSERT INTO `categories` (`category_id`, `category_name`) VALUES
 (1, 'Dorm Essentials'),
-(2, 'Arki Mats'),
+(2, 'Electronics'),
 (3, 'Lab Essentials'),
-(4, 'Others');
+(4, 'Fashion'),
+(5, 'Books'),
+(6, 'Services'),
+(7, 'Foods'),
+(8, 'School Supplies'),
+(9, 'Art Materials'),
+(10, 'Others');
 
 -- --------------------------------------------------------
 
@@ -185,7 +191,7 @@ CREATE TABLE `products` (
   `seller_id` int(11) DEFAULT NULL,
   `category_id` int(11) DEFAULT NULL,
   `title` varchar(150) NOT NULL,
-  `description` text DEFAULT NULL,
+  `description` text NOT NULL,
   `price` decimal(10,2) NOT NULL,
   `item_condition` enum('New','Used') NOT NULL,
   `status` enum('Available','Sold','Reserved') DEFAULT 'Available',

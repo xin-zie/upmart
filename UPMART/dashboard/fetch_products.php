@@ -31,14 +31,19 @@ $result = $conn->query($query);
 
 if ($result && $result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
-        $img = !empty($row['product_img']) ? $row['product_img'] : 'uploads/default.jpg';
-        $profile = !empty($row['profile_pic']) ? '../images/profile.jpg' : '../images/profile.jpg';
-        
+$imgs_q = $conn->query("SELECT image_path FROM media WHERE product_id = {$row['product_id']}");
+$images = [];
+while ($ir = $imgs_q->fetch_assoc()) { $images[] = $ir['image_path']; }
+if (empty($images)) $images[] = '../images/default.jpg';
+
+$count = count($images);
+$gallery_class = $count === 1 ? 'single' : ($count === 2 ? 'two' : 'multi');
+$seller_pic = !empty($row['profile_pic']) ? '../images/' . $row['profile_pic'] : '../images/profile.jpg';
         echo '
         <article class="post-card">
             <div class="post-header">
                 <div class="seller-meta">
-                    <div class="mini-avatar" style="background-image: url(\''.$profile.'\');"></div>
+                    <div class="mini-avatar" style="background-image: url(\''.$seller_pic.'\');"></div>
                     <div class="seller-details">
                         <strong>'.htmlspecialchars($row['full_name']).'</strong>
                         <span class="post-time"><span class="cat-tag">'.htmlspecialchars($row['category_name']).'</span></span>
@@ -47,11 +52,12 @@ if ($result && $result->num_rows > 0) {
                 <div class="post-price">₱'.number_format($row['price'], 2).'</div>
             </div>
             <p class="product-description">'.htmlspecialchars($row['title']).'</p>
-            <div class="post-gallery single">
-                <img src="'.$img.'" class="clickable-img" alt="Product">
-            </div>
-
-            <!-- REMOVED THE FORM AND CHANGED THE BUTTON -->
+            <div class="post-gallery ' . $gallery_class . '">';
+            foreach ($images as $img) {
+                echo '<img src="' . htmlspecialchars($img) . '" class="clickable-img" alt="Product">';
+            }
+            echo '</div>';
+            echo '
             <button type="button" 
                     class="buy-btn" 
                     data-product-id="'.$row['product_id'].'" 

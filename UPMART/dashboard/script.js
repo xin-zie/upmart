@@ -18,17 +18,20 @@ document.addEventListener('click', e => {
 // 1. GLOBAL: fillEditForm (called from inline onclick)
 // ─────────────────────────────────────────────
 function fillEditForm(product) {
-    const form = document.querySelector('.form-section form');
+    const form = document.getElementById('product-form');
     if (!form) return;
 
-    form.querySelector('[name="title"]').value = product.title;
-    form.querySelector('[name="price"]').value = product.price;
-    form.querySelector('[name="description"]').value = product.description;
-    form.querySelector('[name="category_id"]').value = product.category_id;
+    form.querySelector('#f-title').value         = product.title       || '';
+    form.querySelector('#f-price').value         = product.price       || '';
+    form.querySelector('#f-desc').value          = product.description || '';
+    form.querySelector('#category-select').value = product.category_id || '';
 
-    const submitBtn = form.querySelector('.post-btn');
-    submitBtn.innerText = "Update Post";
-    submitBtn.name = "update_post";
+    // Switch to Edit mode
+    const submitBtn = document.getElementById('form-submit-btn');
+    const formTitle = document.getElementById('form-title');
+    submitBtn.textContent = 'Update Post';
+    submitBtn.name        = 'update_post';
+    formTitle.textContent = 'Edit Post';
 
     let idInput = form.querySelector('[name="product_id"]');
     if (!idInput) {
@@ -39,7 +42,7 @@ function fillEditForm(product) {
     }
     idInput.value = product.product_id;
 
-    document.querySelector('.main-content').scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('.form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ─────────────────────────────────────────────

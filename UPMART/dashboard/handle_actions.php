@@ -43,15 +43,23 @@ if (isset($_POST['create_post']) || isset($_POST['update_post'])) {
     if ($conn->query($sql)) {
         $product_id = isset($_POST['update_post']) ? $_POST['product_id'] : $conn->insert_id;
         
-        if (!empty($_FILES['product_image']['name'])) {
-            $fileName = time() . "_" . basename($_FILES['product_image']['name']);
-            $targetPath = "uploads/" . $fileName;
-            
-            if (move_uploaded_file($_FILES['product_image']['tmp_name'], $targetPath)) {
-                if (isset($_POST['update_post'])) { 
-                    $conn->query("DELETE FROM media WHERE product_id='$product_id'"); 
+        if (!empty($_FILES['product_images']['name'][0])) {
+            if (isset($_POST['update_post'])) {
+                $old = $conn->query("SELECT image_path FROM media WHERE product_id='$product_id'");
+                while ($r = $old->fetch_assoc()) {
+                    if (file_exists($r['image_path'])) unlink($r['image_path']);
                 }
-                $conn->query("INSERT INTO media (product_id, image_path) VALUES ('$product_id', '$targetPath')");
+                $conn->query("DELETE FROM media WHERE product_id='$product_id'");
+            }
+            $upload_dir = '../uploads/';
+            foreach ($_FILES['product_images']['tmp_name'] as $i => $tmp) {
+                if ($_FILES['product_images']['error'][$i] !== UPLOAD_ERR_OK) continue;
+                $fileName   = time() . '_' . $i . '_' . basename($_FILES['product_images']['name'][$i]);
+                $targetPath = $upload_dir . $fileName;
+                if (move_uploaded_file($tmp, $targetPath)) {
+                    $safe = mysqli_real_escape_string($conn, $targetPath);
+                    $conn->query("INSERT INTO media (product_id, image_path) VALUES ('$product_id', '$safe')");
+                }
             }
         }
     }
@@ -104,7 +112,7 @@ if (isset($_POST['confirm_deal'])) {
 
 // 1. GET CONVERSATION LIST
 if (isset($_GET['get_conversations'])) {
-    $query = "SELECT m.message_text as last_message, 
+    $query = "SELECT m.message as last_message, 
                      u.full_name as other_user_name, 
                      u.profile_pic, 
                      p.title as product_name, 
@@ -151,8 +159,8 @@ if (isset($_GET['get_messages'])) {
     $msgs = [];
     while($row = $res->fetch_assoc()) {
         $msgs[] = [
-            'message' => $row['message_text'],
-            'sent_at' => $row['created_at'],
+            'message' => $row['message'],       
+            'sent_at' => $row['sent_at'],
             'is_mine' => ($row['sender_id'] == $me)
         ];
     }
@@ -167,7 +175,7 @@ if (isset($_POST['send_message'])) {
     $message = mysqli_real_escape_string($conn, $_POST['message']);
 
     if (!empty($message)) {
-        $insert = "INSERT INTO messages (product_id, sender_id, receiver_id, message_text) 
+        $insert = "INSERT INTO messages (product_id, sender_id, receiver_id, message) 
                    VALUES ($product_id, $me, $receiver_id, '$message')";
         
         if ($conn->query($insert)) {
