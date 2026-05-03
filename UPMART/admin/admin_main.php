@@ -1,6 +1,6 @@
 <?php
 session_start();
-include '../db_connect.php';
+include '../db_connect.php'; 
 
 // 1. Guard: Only allow Admins
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -30,41 +30,41 @@ $offset_sold = 220 - (220 * ($sold_percent / 100));
 $avail_percent = ($ring_total > 0) ? round(($avail_count / $ring_total) * 100) : 0;
 $offset_avail = 220 - (220 * ($avail_percent / 100));
 
-// 4. Fetch your static database data for the lists
-$recent_users = $conn->query("SELECT full_name, role FROM users WHERE role != 'admin' ORDER BY created_at DESC LIMIT 4");
+// --- 4. Fetch Category Distribution for Doughnut Chart ---
+$chart_query = "SELECT c.category_name, COUNT(p.product_id) as post_count 
+                FROM categories c 
+                LEFT JOIN products p ON c.category_id = p.category_id 
+                GROUP BY c.category_id 
+                ORDER BY post_count DESC";
+$chart_res = $conn->query($chart_query);
 
-// Fetch Top Categories by Inquiry Count
-$cat_query = "SELECT c.category_name, COUNT(t.inquiry_id) as sales_count 
-              FROM transactions t 
-              JOIN products p ON t.product_id = p.product_id 
-              JOIN categories c ON p.category_id = c.category_id 
-              GROUP BY c.category_id 
-              ORDER BY sales_count DESC 
-              LIMIT 5";
-$cat_result = $conn->query($cat_query);
+$chart_labels = [];
+$chart_data = [];
 
-$cat_labels = [];
-$cat_data = [];
-
-if ($cat_result && $cat_result->num_rows > 0) {
-    while ($row = $cat_result->fetch_assoc()) {
-        $cat_labels[] = $row['category_name'];
-        $cat_data[] = $row['sales_count'];
+if ($chart_res && $chart_res->num_rows > 0) {
+    while($row = $chart_res->fetch_assoc()) {
+        // Only add to chart if there's actually a name
+        $chart_labels[] = $row['category_name'];
+        $chart_data[] = (int)$row['post_count'];
     }
-} else {
-    // Default placeholder so the chart doesn't break if table is empty
-    $cat_labels = ['No Inquiries Yet'];
-    $cat_data = [1];
 }
 
+// If still empty after the loop, provide placeholders
+if (empty($chart_labels)) {
+    $chart_labels = ['No Posts Yet'];
+    $chart_data = [1]; 
+}   
+
 // 5. Fetch Top Sellers (Users with the most product listings)
-$seller_query = "SELECT u.full_name, COUNT(p.product_id) as item_count 
-                 FROM users u 
-                 JOIN products p ON u.user_id = p.seller_id 
-                 GROUP BY u.user_id 
-                 ORDER BY item_count DESC 
-                 LIMIT 3";
-$top_sellers = $conn->query($seller_query);
+$top_sellers_query = "SELECT u.full_name, COUNT(p.product_id) as sold_count 
+                      FROM users u
+                      JOIN products p ON u.user_id = p.seller_id 
+                      WHERE p.status = 'Sold' 
+                      GROUP BY u.user_id 
+                      ORDER BY sold_count DESC 
+                      LIMIT 5";
+
+$top_sellers = $conn->query($top_sellers_query);
 
 // 6. Fetch Top Buyers (Users with the most inquiries/transactions)
 $buyer_query = "SELECT u.full_name, COUNT(t.inquiry_id) as total_buys 
@@ -89,7 +89,7 @@ $chart_labels = [];
 $chart_data = [];
 
 if ($top_cats_result && $top_cats_result->num_rows > 0) {
-    while ($cat = $top_cats_result->fetch_assoc()) {
+    while($cat = $top_cats_result->fetch_assoc()) {
         $chart_labels[] = $cat['category_name'];
         $chart_data[] = $cat['item_count'];
     }
@@ -114,6 +114,22 @@ $sold_percent = ($total_items > 0) ? round(($sold_count / $total_items) * 100) :
 
 $offset_bought = 220 - (220 * ($bought_percent / 100));
 $offset_sold = 220 - (220 * ($sold_percent / 100));
+
+// 7. Fetch Top Sellers (Users with the most product listings)
+$recent_users = $conn->query("SELECT full_name, role FROM users WHERE role != 'admin' ORDER BY created_at DESC LIMIT 4");
+
+// Count posts that need admin approval
+$pending_post_query = "SELECT COUNT(*) as total FROM products WHERE approval_status = 'Pending'";
+$pending_post_res = $conn->query($pending_post_query);
+$pending_post_count = $pending_post_res->fetch_assoc()['total'] ?? 0;
+
+// Count reports that are still 'Pending'
+$pending_report_query = "SELECT COUNT(*) as total FROM reports WHERE status = 'Pending'";
+$pending_report_res = $conn->query($pending_report_query);
+$pending_report_count = $pending_report_res->fetch_assoc()['total'] ?? 0;
+
+// Total combined notifications
+$total_admin_notifs = $pending_post_count + $pending_report_count;
 
 ?>
 
@@ -161,8 +177,26 @@ $offset_sold = 220 - (220 * ($sold_percent / 100));
         <nav class="top-nav">
             <h1 style="font-size: 1.4rem; margin-top: 10px;">🏠︎ Dashboard</h1>
             <div class="status-indicators">
-                <button class="icon-btn" id="notifTrigger"><span class="material-icons">notifications</span><span
-                        class="notif-badge"></span></button>
+                <!-- Added onclick="toggleNotifSidebar()" to the button -->
+                <button class="icon-btn" onclick="toggleNotifSidebar()" style="position: relative;">
+                    <span class="material-icons">notifications</span>
+                    <?php if ($total_admin_notifs > 0): ?>
+                        <span class="notif-badge" id="adminNotifBadge" style="
+                            background: #9a0000; 
+                            color: white; 
+                            position: absolute; 
+                            top: -2px; 
+                            right: -2px; 
+                            border-radius: 50%; 
+                            padding: 2px 6px; 
+                            font-size: 0.7rem; 
+                            font-weight: bold;
+                            border: 2px solid white;
+                        ">
+                            <?= $total_admin_notifs ?>
+                        </span>
+                    <?php endif; ?>
+                </button>
             </div>
         </nav>
 
@@ -214,24 +248,29 @@ $offset_sold = 220 - (220 * ($sold_percent / 100));
 
                 </section>
 
-                <div class="tops-container" style="background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+               <div class="tops-container" style="background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                     <span style="font-weight: 800; color: #1a1a2e; display: block; margin-bottom: 10px;">🏆 Top Sellers</span>
                     <?php if ($top_sellers && $top_sellers->num_rows > 0): ?>
-                        <?php while ($seller = $top_sellers->fetch_assoc()): ?>
-                            <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f9f9f9;">
-                                <span style="font-size: 0.9rem;"><?= htmlspecialchars($seller['full_name']) ?></span>
-                                <span style="font-weight: bold; color: maroon;"><?= $seller['item_count'] ?> Posts</span>
+                        <?php while($seller = $top_sellers->fetch_assoc()): ?>
+                            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f9f9f9; align-items: center;">
+                                <span style="font-size: 0.9rem; color: #333;"><?= htmlspecialchars($seller['full_name']) ?></span>
+                                <!-- Displays the total number of items they have sold -->
+                                <span style="font-size: 0.8rem; background: #e1f5da; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-weight: bold;">
+                                    <?= $seller['sold_count'] ?> Sold
+                                </span>
                             </div>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <small style="color: #888;">No sellers found.</small>
+                        <div style="text-align: center; padding: 10px;">
+                            <small style="color: #888;">No sales recorded yet.</small>
+                        </div>
                     <?php endif; ?>
                 </div>
 
                 <div class="topb-container" style="background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                     <span style="font-weight: 800; color: maroon; display: block; margin-bottom: 10px;">🛍️ Top Buyers</span>
                     <?php if ($top_buyers && $top_buyers->num_rows > 0): ?>
-                        <?php while ($buyer = $top_buyers->fetch_assoc()): ?>
+                        <?php while($buyer = $top_buyers->fetch_assoc()): ?>
                             <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f9f9f9;">
                                 <span style="font-size: 0.9rem;"><?= htmlspecialchars($buyer['full_name']) ?></span>
                                 <span style="font-weight: bold; color: #1a1a2e;"><?= $buyer['total_buys'] ?> Orders</span>
@@ -250,19 +289,16 @@ $offset_sold = 220 - (220 * ($sold_percent / 100));
 
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
-                                <tr style="text-align: left; border-bottom: 2px solid #f0f0f0;"></tr>
+                                <tr style="text-align: left; border-bottom: 2px solid #f0f0f0;">
+                                    <th style="padding: 10px; font-size: 0.8rem; color: #888;">NAME</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 <?php if ($recent_users && $recent_users->num_rows > 0): ?>
-                                    <?php while ($user = $recent_users->fetch_assoc()): ?>
+                                    <?php while($user = $recent_users->fetch_assoc()): ?>
                                         <tr style="border-bottom: 1px solid #f9f9f9;">
                                             <td style="padding: 12px 10px; font-size: 0.9rem; font-weight: 600; color: #333;">
                                                 <?= htmlspecialchars($user['full_name']) ?>
-                                            </td>
-                                            <td style="padding: 12px 10px; text-align: right;">
-                                                <span style="font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; background: <?= ($user['role'] === 'admin') ? '#ffebee' : '#e1f5da'; ?>; color: <?= ($user['role'] === 'admin') ? 'maroon' : '#2e7d32'; ?>; font-weight: bold;">
-                                                    <?= strtoupper(htmlspecialchars($user['role'])) ?>
-                                                </span>
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>
@@ -277,38 +313,18 @@ $offset_sold = 220 - (220 * ($sold_percent / 100));
                 </div>
 
                 <div class="admin-right-col">
-                    <div class="chart-container" style="background: white; padding: 20px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                        <h3 style="margin-bottom: 15px; color: #1a1a2e;">Top 5 Categories</h3>
-
-                        <div style="height: 200px; margin-bottom: 20px;">
+                    <div class="chart-container" style="background: white; padding: 20px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); height: 100%; min-height: 400px;">
+                        <h3 style="margin-bottom: 25px; color: #1a1a2e; text-align: center;">Top Categories</h3>
+                        
+                        <div style="position: relative; height: 300px; width: 100%;">
                             <canvas id="myChart"></canvas>
                         </div>
 
-                        <div class="ranking-list">
-                            <?php
-                            // Check if we actually have data
-                            if ($top_cats_result && $top_cats_result->num_rows > 0):
-                                // Reset pointer to loop through the results again
-                                $top_cats_result->data_seek(0);
-                                $rank = 1;
-                                while ($cat = $top_cats_result->fetch_assoc()): ?>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
-                                        <div style="display: flex; align-items: center; gap: 10px;">
-                                            <span style="background: maroon; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold;">
-                                                <?= $rank++ ?>
-                                            </span>
-                                            <span style="font-size: 0.9rem; font-weight: 600;"><?= htmlspecialchars($cat['category_name']) ?></span>
-                                        </div>
-                                        <span style="font-size: 0.85rem; color: #666;"><?= $cat['item_count'] ?> items</span>
-                                    </div>
-                                <?php endwhile; ?>
-                            <?php else: ?>
-                                <div style="text-align: center; padding: 30px; color: #888;">
-                                    <span class="material-icons" style="font-size: 3rem; color: #ccc;">category</span>
-                                    <p style="margin-top: 10px; font-weight: 600;">No categories posted yet.</p>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                        <?php if (!($top_cats_result && $top_cats_result->num_rows > 0)): ?>
+                            <div style="text-align: center; padding: 20px; color: #888;">
+                                <p>No categories posted yet.</p>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -320,7 +336,11 @@ $offset_sold = 220 - (220 * ($sold_percent / 100));
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="admin-dash.js"></script>
+    <script>
+        const catLabels = <?php echo json_encode($chart_labels); ?>;
+        const catData = <?php echo json_encode($chart_data); ?>;
+    </script>
+    <script src="admin-panel.js"></script>
 </body>
 
 </html>
