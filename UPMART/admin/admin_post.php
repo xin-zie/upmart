@@ -83,39 +83,32 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
+    <title>Admin Dashboard | UPMart</title>
     <link rel="stylesheet" href="admin-panel.css">
     <link rel="icon" href="favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
-
 <body>
     <div class="sidebar">
         <div class="sidebar-brand">
-            <img src="../images/logo.png" class="logo-img" alt="UPMart Logo">
+            <img src="logo.png" class="logo-img" alt="UPMart Logo">
         </div>
 
-        <img src="../images/profile.jpg" alt="Profile" class="profile-img">
+        <img src="profile.jpg" alt="Profile" class="profile-img">
         <div class="profile-info">
             <span class="profile-name">Admin</span>
         </div>
 
         <ul class="nav-links">
-            <li class="active">
-                <a href="admin_main.php"><span>🏠︎</span> Dashboard</a>
-            </li>
-            <li>
-                <a href="admin_post.php" style="background: #e1f5da; color: black;"><span>📮</span> Posts</a>
-            </li>
-            <li>
-                <a href="admin_report.php"><span>🔔</span> Reports</a>
-            </li>
+            <li><a href="admin_main.php"><span>🏠︎</span> Dashboard</a></li>
+            <li class="active" style="background: #e1f5da; color: black"><a href="admin_post.php"><span>📮</span> Posts</a></li>
+            <li><a href="admin_report.php"><span>🔔</span> Reports</a></li>
+
             <div class="logout-container">
-                <a href="../dashboard/logout.php" class="logout-btn" style="text-decoration:none; display:block; text-align:center;">Logout</a>
+                <a href="../includes/logout.php" class="logout-btn" style="text-decoration:none; display:block; text-align:center;">Logout</a>
             </div>
         </ul>
     </div>
@@ -147,14 +140,32 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
             </div>
         </nav>
 
+        <!-- Insert the Sidebar container here -->
+        <div id="notifSidebar" style="
+            display: none; 
+            position: fixed; 
+            top: 70px; 
+            right: 20px; 
+            width: 300px; 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+            padding: 15px; 
+            z-index: 1000;">
+            <h4 style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 5px; color: #1a1a2e;">Notifications</h4>
+            <div id="notifList">
+                <!-- Messages like "You have 4 posts to approve" will appear here via JS -->
+            </div>
+        </div>
+
         <div class="content-row">
             <div class="about-text">
-                <p>Scan through pending posts from sellers.</p>
+                <p>Scan through pending posts from sellers across the campus.</p>
             </div>
         </div>
 
         <section class="dashboard-grid admin-review-grid">
-           <div class="posts-review-container">
+            <div class="posts-review-container">
                 <div class="review-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
                     <h3>Pending Post</h3>
                     <?php if ($pending_post_count > 0): ?>
@@ -171,8 +182,10 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
                 <div class="posts-list" id="pendingPosts">
                     <?php if ($posts->num_rows > 0): ?>
                         <?php while($row = $posts->fetch_assoc()): 
-                            $img = !empty($row['product_img']) ? $row['product_img'] : '../uploads/default.jpg';
+                            $all_images = explode(',', $row['all_images']);
+                            $img = !empty($all_images[0]) ? '../marketplace/' . $all_images[0] : '../marketplace/uploads/default.jpg';
                         ?>
+                            <!-- CORRECTED: One opening div that wraps the entire card -->
                             <div class="post-item" 
                                 onclick="showPreview(
                                     '<?= addslashes($row['title']) ?>', 
@@ -202,17 +215,21 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
                             </div>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <p style="padding:20px; color:#888;">No posts found in the database.</p>
+                        <div style="text-align: center; padding: 40px;">
+                            <span class="material-icons" style="font-size: 48px; color: #ccc;">done_all</span>
+                            <p style="color:#888;">No pending posts to review.</p>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <div class="preview-panel" id="previewPanel">
+           <div class="preview-panel" id="previewPanel">
                 <div class="empty-state" id="emptyState">
                     <span class="material-icons">manage_search</span>
                     <p>Select a post to inspect details</p>
-                </div>
+                </div>  
 
+                <!-- The actual card-style content -->
                 <div class="preview-content card-format" id="previewContent" style="display: none;">
                     <div class="card-header">
                         <div class="user-meta">
@@ -244,7 +261,6 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
         </section>
     </div>
 
-    <script src="admin-dash.js"></script>
+    <script src="admin-panel.js"></script>
 </body>
-
 </html>
