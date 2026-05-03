@@ -16,6 +16,20 @@ if (!$reports) {
     // This will tell you if your table name or column names are wrong
     die("Query Failed: " . $conn->error); 
 }
+
+// Count posts that need admin approval
+$pending_post_query = "SELECT COUNT(*) as total FROM products WHERE approval_status = 'Pending'";
+$pending_post_res = $conn->query($pending_post_query);
+$pending_post_count = $pending_post_res->fetch_assoc()['total'] ?? 0;
+
+// Count reports that are still 'Pending'
+$pending_report_query = "SELECT COUNT(*) as total FROM reports WHERE status = 'Pending'";
+$pending_report_res = $conn->query($pending_report_query);
+$pending_report_count = $pending_report_res->fetch_assoc()['total'] ?? 0;
+
+// Total combined notifications
+$total_admin_notifs = $pending_post_count + $pending_report_count;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -58,10 +72,28 @@ if (!$reports) {
 
     <div class="main-content">
         <nav class="top-nav">
-            <h1 style="font-size: 1.4rem; margin-top: 10px;">🔔 Reports</h1>
+            <h1 style="font-size: 1.4rem; margin-top: 10px;">🏠︎ Dashboard</h1>
             <div class="status-indicators">
-                <button class="icon-btn" id="notifTrigger" style="margin-left: 25px;"><span class="material-icons">notifications</span><span
-                        class="notif-badge"></span></button>
+                <!-- Added onclick="toggleNotifSidebar()" to the button -->
+                <button class="icon-btn" onclick="toggleNotifSidebar()" style="position: relative;">
+                    <span class="material-icons">notifications</span>
+                    <?php if ($total_admin_notifs > 0): ?>
+                        <span class="notif-badge" id="adminNotifBadge" style="
+                            background: #9a0000; 
+                            color: white; 
+                            position: absolute; 
+                            top: -2px; 
+                            right: -2px; 
+                            border-radius: 50%; 
+                            padding: 2px 6px; 
+                            font-size: 0.7rem; 
+                            font-weight: bold;
+                            border: 2px solid white;
+                        ">
+                            <?= $total_admin_notifs ?>
+                        </span>
+                    <?php endif; ?>
+                </button>
             </div>
         </nav>
 
