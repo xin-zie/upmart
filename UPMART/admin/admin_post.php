@@ -94,10 +94,10 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
 <body>
     <div class="sidebar">
         <div class="sidebar-brand">
-            <img src="logo.png" class="logo-img" alt="UPMart Logo">
+            <img src="../images/logo.png" class="logo-img" alt="UPMart Logo">
         </div>
 
-        <img src="profile.jpg" alt="Profile" class="profile-img">
+        <img src="../images/profile.jpg" alt="Profile" class="profile-img">
         <div class="profile-info">
             <span class="profile-name">Admin</span>
         </div>
