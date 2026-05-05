@@ -156,7 +156,7 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
         </section>  
     </div>
 
-    <script src="admin-dash.js"></script>
+    <script src="admin-panel.js"></script>
 </body>
 
 </html>

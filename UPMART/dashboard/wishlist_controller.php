@@ -35,7 +35,6 @@ if ($action === 'add') {
 
 // --- ACTION: FETCH WISHES ---
 if ($action === 'fetch') {
-    // No WHERE clause here means total public visibility
     $query = "SELECT w.*, u.full_name FROM wishlist w 
               JOIN users u ON w.user_id = u.user_id 
               ORDER BY w.created_at DESC LIMIT 10";
@@ -44,7 +43,6 @@ if ($action === 'fetch') {
 
     if ($result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
-            // Check if the post belongs to the current user to style it differently
             $is_mine = (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $row['user_id']);
             $card_style = $is_mine ? 'style="border: 1px solid maroon; background: #fff9f9;"' : '';
 
@@ -64,31 +62,54 @@ if ($action === 'fetch') {
     exit();
 }
 
+// --- ACTION: MATCH A WISH (COMBINED & SECURE) ---
 if ($action === 'match_wish') {
-    $wish_id = $_POST['wish_id'];
-    $sender_id = $_SESSION['user_id'];
+    header('Content-Type: application/json');
+    
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode(['success' => false, 'message' => 'Login required']);
+        exit();
+    }
 
-    // 1. Find out who owns the wish
-    $owner_query = "SELECT user_id, item_name FROM wishlist WHERE wish_id = ?";
-    $stmt = $conn->prepare($owner_query);
+    $wish_id = intval($_POST['wish_id']);
+    $seller_id = $_SESSION['user_id'];
+    $seller_name = $_SESSION['full_name'];
+
+    // 1. Fetch wish details to find the owner/requester
+    $query = "SELECT w.user_id, w.item_name, u.full_name 
+              FROM wishlist w 
+              JOIN users u ON w.user_id = u.user_id 
+              WHERE w.wish_id = ?";
+    $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $wish_id);
     $stmt->execute();
     $wish = $stmt->get_result()->fetch_assoc();
-    
-    $owner_id = $wish['user_id'];
-    $item_name = $wish['item_name'];
 
-    // 2. Create the notification message
-    $sender_name = $_SESSION['full_name']; // Ensure this is in your session!
-    $notif_msg = "$sender_name has the '$item_name' you're looking for!";
-
-    // 3. Insert into notifications table
-    $insert_notif = "INSERT INTO notifications (user_id, sender_id, message) VALUES (?, ?, ?)";
-    $notif_stmt = $conn->prepare($insert_notif);
-    $notif_stmt->bind_param("iis", $owner_id, $sender_id, $notif_msg);
-    
-    if ($notif_stmt->execute()) {
-        echo "Success";
+    if ($wish) {
+        $requester_id = $wish['user_id'];
+        $requester_name = $wish['full_name'];
+        $item_name = $wish['item_name'];
+        
+        // 2. Insert notification for the Requester
+        $notif_msg = "<b>$seller_name</b> has the item you are looking for: '$item_name'!";
+        
+        $notif_sql = "INSERT INTO notifications (user_id, sender_id, message, is_read) 
+                      VALUES (?, ?, ?, 0)";
+        $notif_stmt = $conn->prepare($notif_sql);
+        $notif_stmt->bind_param("iis", $requester_id, $seller_id, $notif_msg);
+        
+        if ($notif_stmt->execute()) {
+            echo json_encode([
+                'success' => true, 
+                'requester_id' => $requester_id, 
+                'requester_name' => $requester_name,
+                'item_name' => $item_name
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Database error.']);
+        }
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Wish not found.']);
     }
     exit();
 }

@@ -290,7 +290,6 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="text-align: left; border-bottom: 2px solid #f0f0f0;">
-                                    <th style="padding: 10px; font-size: 0.8rem; color: #888;">NAME</th>
                                 </tr>
                             </thead>
                             <tbody>

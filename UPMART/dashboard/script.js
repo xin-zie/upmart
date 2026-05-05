@@ -1,38 +1,25 @@
+/**
+ * UPMart Marketplace - Integrated Logic
+ * Combined Marketplace Management, Messaging, and Notifications
+ */
 
-document.addEventListener('click', e => {
-    const btn = e.target.closest('.buy-btn');
-    if (!btn) return;
-
-    e.preventDefault();
-
-    const productId = btn.dataset.productId;
-    const sellerId = btn.dataset.sellerId;
-    const productName = btn.dataset.productName;
-
-    if (window.openChatUI) {
-        window.openChatUI(productId, sellerId, productName);
-    }
-});
-
-// ─────────────────────────────────────────────
-// 1. GLOBAL: fillEditForm (called from inline onclick)
-// ─────────────────────────────────────────────
+// 1. GLOBAL FUNCTIONS (Defined for direct HTML access)
 function fillEditForm(product) {
-    const form = document.getElementById('product-form');
+    const form = document.querySelector('.form-section form');
     if (!form) return;
 
-    form.querySelector('#f-title').value         = product.title       || '';
-    form.querySelector('#f-price').value         = product.price       || '';
-    form.querySelector('#f-desc').value          = product.description || '';
-    form.querySelector('#category-select').value = product.category_id || '';
+    // Map data to inputs
+    form.querySelector('[name="title"]').value = product.title;
+    form.querySelector('[name="price"]').value = product.price;
+    form.querySelector('[name="description"]').value = product.description;
+    form.querySelector('[name="category_id"]').value = product.category_id;
+    
+    // Change the button to "Update" mode
+    const submitBtn = form.querySelector('.post-btn');
+    submitBtn.innerText = "Update Listing";
+    submitBtn.name = "update_post";
 
-    // Switch to Edit mode
-    const submitBtn = document.getElementById('form-submit-btn');
-    const formTitle = document.getElementById('form-title');
-    submitBtn.textContent = 'Update Post';
-    submitBtn.name        = 'update_post';
-    formTitle.textContent = 'Edit Post';
-
+    // Inject hidden product_id
     let idInput = form.querySelector('[name="product_id"]');
     if (!idInput) {
         idInput = document.createElement('input');
@@ -42,356 +29,342 @@ function fillEditForm(product) {
     }
     idInput.value = product.product_id;
 
-    document.querySelector('.form-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Scroll smoothly to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ─────────────────────────────────────────────
-// 2. DOM READY
-// ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-
-    // ── Selectors ──────────────────────────────
-    const el = {
+    /**
+     * 2. SELECTORS & INITIALIZATION
+     */
+    const elements = {
+        // Mode Switchers
         btnBuyer: document.getElementById('mode-buyer'),
         btnSeller: document.getElementById('mode-seller'),
+        
+        // Views
         viewBuyer: document.getElementById('view-buyer'),
         viewSeller: document.getElementById('view-seller'),
         viewCart: document.getElementById('view-cart'),
-        viewTxn: document.getElementById('view-transactions'),
+        viewTransactions: document.getElementById('view-transactions'),
+        
+        // Navigation & Global UI
         dynamicLink: document.getElementById('dynamic-link'),
-        navMarketplace: document.querySelector('#nav-marketplace'),
+        navMarketplace: document.querySelector('.nav-links li:nth-child(2)'),
         navLinks: document.querySelectorAll('.nav-links li'),
         productSearch: document.getElementById('product-search'),
-        searchContainer: document.querySelector('.search-container'),
         socialFeed: document.querySelector('.social-feed'),
+        
+        // Text/Header Elements
         greet: document.getElementById('greeting'),
         subgreet: document.getElementById('sub-greeting'),
         categoryNav: document.getElementById('category-nav'),
         welcomeSection: document.querySelector('.welcome'),
+        
+        // Product Listing Form
         categorySelect: document.getElementById('category-select'),
-        otherCat: document.getElementById('other-category-container'),
+        otherCategoryContainer: document.getElementById('other-category-container'),
         uploadArea: document.getElementById('dropzone-area'),
         fileInput: document.getElementById('file-input'),
-        previewCont: document.getElementById('image-preview-container'),
+        previewContainer: document.getElementById('image-preview-container'),
+        
+        // Lightbox
         overlay: document.getElementById('image-overlay'),
         overlayImg: document.getElementById('overlay-img'),
         closeOverlay: document.querySelector('.close-overlay'),
-        // Messaging
-        msgFloat: document.getElementById('msg-float-btn'),
+
+        // Messaging Elements
         msgModal: document.getElementById('msg-modal'),
-        closeMsg: document.getElementById('close-msg'),
-        msgTitle: document.getElementById('msg-title'),
-        msgConvos: document.getElementById('msg-conversations'),
+        msgConversations: document.getElementById('msg-conversations'),
         msgThreadView: document.getElementById('msg-thread-view'),
-        msgThread: document.getElementById('msg-thread'),
+        msgTitle: document.getElementById('msg-title'),
         msgInput: document.getElementById('msg-input'),
-        msgSend: document.getElementById('msg-send'),
-        msgBack: document.getElementById('msg-back'),
+        msgSendBtn: document.getElementById('msg-send'),
+        msgFloatBtn: document.getElementById('msg-float-btn'),
+        closeMsg: document.getElementById('close-msg'),
+        msgBack: document.getElementById('msg-back')
     };
 
-    // Active messaging context
-    let activeProductId = null;
-    let activeSellerId = null;
-    let msgPollTimer = null;
-
-    // ─────────────────────────────────────────────
-    // 3. VIEW MANAGEMENT
-    // ─────────────────────────────────────────────
+    /**
+     * 3. VIEW MANAGEMENT
+     */
     function hideAllViews() {
-        [el.viewBuyer, el.viewSeller, el.viewCart, el.viewTxn,
-        el.welcomeSection, el.categoryNav,el.searchContainer,].forEach(v => { if (v) v.style.display = 'none'; });
-        el.navLinks.forEach(li => li.classList.remove('active'));
+        const views = [
+            elements.viewBuyer, elements.viewSeller, 
+            elements.viewCart, elements.viewTransactions, 
+            elements.welcomeSection, elements.categoryNav
+        ];
+        views.forEach(el => { if(el) el.style.display = 'none'; });
+        elements.navLinks.forEach(li => li.classList.remove('active'));
     }
 
     function switchMode(isSeller) {
         hideAllViews();
-        if (el.welcomeSection) el.welcomeSection.style.display = 'block';
-        if (el.navMarketplace) el.navMarketplace.classList.add('active');
-        
+        if (elements.welcomeSection) elements.welcomeSection.style.display = 'block';
+        if (elements.navMarketplace) elements.navMarketplace.classList.add('active');
+
         if (isSeller) {
-            if (el.viewSeller) el.viewSeller.style.display = 'block';
-            if (el.categoryNav) el.categoryNav.style.display = 'none';
-            el.subgreet.innerText = "Manage your shop and list new products.";
-            el.dynamicLink.innerHTML = '<span class="icon">📈</span> My Transactions';
-            el.btnSeller.classList.add('active');
-            el.btnBuyer.classList.remove('active');
+            if (elements.viewSeller) elements.viewSeller.style.display = 'block';
+            if (elements.categoryNav) elements.categoryNav.style.display = 'none'; 
+            elements.greet.innerText = "Seller Mode";
+            elements.subgreet.innerText = "Manage your shop and list new products.";
+            elements.dynamicLink.innerHTML = '<span class="icon">📈</span> My Transactions';
+            elements.btnSeller.classList.add('active');
+            elements.btnBuyer.classList.remove('active');
         } else {
-            if (el.viewBuyer) el.viewBuyer.style.display = 'block';
-            if (el.viewBuyer) el.searchContainer.style.display = 'flex';
-            if (el.categoryNav) el.categoryNav.style.display = 'flex';
-            el.subgreet.innerText = "Browse and find the products you need!";
-            el.dynamicLink.innerHTML = '<span class="icon">🛍️</span> My Orders';
-            el.btnBuyer.classList.add('active');
-            el.btnSeller.classList.remove('active');
+            if (elements.viewBuyer) elements.viewBuyer.style.display = 'block';
+            if (elements.categoryNav) elements.categoryNav.style.display = 'flex'; 
+            elements.greet.innerText = "Welcome to UPMart!"; // Cleaned up name for generic use
+            elements.subgreet.innerText = "Start exploring our marketplace and discover amazing products!";
+            elements.dynamicLink.innerHTML = '<span class="icon">🛍️</span> My Cart';
+            elements.btnBuyer.classList.add('active');
+            elements.btnSeller.classList.remove('active');
         }
     }
 
-    // ─────────────────────────────────────────────
-    // 4. LIVE FEED (search + filter)
-    // ─────────────────────────────────────────────
+    /**
+     * 4. LIVE FEED LOGIC (SEARCH & FILTER)
+     */
     function updateFeed() {
         const activePill = document.querySelector('.filter-pill.active');
-        const category = activePill ? activePill.getAttribute('data-category') : 'all';
-        const search = el.productSearch ? el.productSearch.value : '';
-
-        fetch(`fetch_products.php?category=${category}&search=${encodeURIComponent(search)}`)
-            .then(r => r.text())
-            .then(html => { if (el.socialFeed) el.socialFeed.innerHTML = html; });
+        const categoryId = activePill ? activePill.getAttribute('data-category') : 'all';
+        const searchTerm = elements.productSearch ? elements.productSearch.value : '';
+        
+        fetch(`fetch_products.php?category=${categoryId}&search=${encodeURIComponent(searchTerm)}`)
+            .then(res => res.text())
+            .then(data => {
+                if (elements.socialFeed) elements.socialFeed.innerHTML = data;
+            });
     }
 
-    document.querySelectorAll('.filter-pill').forEach(pill => {
+    /**
+     * 5. MESSAGING & NOTIFICATION LOGIC
+     */
+
+    // Notification Click Handler
+    window.handleNotifClick = function(type, targetId, senderName) {
+        // Close notification drawer
+        const drawer = document.getElementById('notifDrawer');
+        if (drawer) drawer.classList.remove('open');
+
+        // Redirect or Open Chat based on type
+        if (type === 'message' || type === 'wish_match') {
+            window.openChatUI(0, targetId, senderName);
+        } else if (type === 'approval') {
+            window.location.href = 'marketplace.php';
+        }
+    };
+
+    window.openChatUI = function(productId, otherId, title) {
+        const msgModal = document.getElementById('msg-modal');
+        const threadContainer = document.getElementById('msg-thread');
+        
+        msgModal.classList.add('open');
+        document.getElementById('msg-conversations').style.display = 'none';
+        document.getElementById('msg-thread-view').style.display = 'flex';
+        document.getElementById('msg-title').innerText = title;
+
+        // Set attributes for the 'Send' button logic
+        msgModal.setAttribute('data-active-other', otherId);
+        msgModal.setAttribute('data-active-product', productId);
+
+        threadContainer.innerHTML = '<p style="text-align:center; padding:20px; color:#888;">Loading history...</p>';
+
+        fetch(`handle_actions.php?get_messages=1&other_user=${otherId}&product_id=${productId}`)
+            .then(res => res.json())
+            .then(data => {
+                threadContainer.innerHTML = ''; // Clear "Loading" text
+                
+                if (data.length === 0) {
+                    threadContainer.innerHTML = '<p style="text-align:center; margin-top:20px; color:#bbb;">No previous messages.</p>';
+                }
+
+                data.forEach(m => {
+                    const div = document.createElement('div');
+                    // Adds 'mine' class if sent by current user, 'theirs' otherwise
+                    div.className = m.is_mine ? 'msg-bubble mine' : 'msg-bubble theirs';
+                    div.innerHTML = `
+                        <div class="bubble-content">
+                            <p>${m.message}</p>
+                            <small style="display:block; font-size:0.6rem; margin-top:4px; opacity:0.7;">
+                                ${m.sent_at}
+                            </small>
+                        </div>
+                    `;
+                    threadContainer.appendChild(div);
+                });
+                
+                // Auto-scroll to the bottom (the most recent message)
+                threadContainer.scrollTop = threadContainer.scrollHeight;
+            })
+            .catch(err => {
+                console.error("History Error:", err);
+                threadContainer.innerHTML = '<p style="color:red; text-align:center;">Failed to load history.</p>';
+            });
+    };
+
+    // Load Conversations List
+    function loadConversations() {
+        if (!elements.msgConversations) return;
+        elements.msgConversations.innerHTML = '<p style="padding:20px; color:#888;">Loading chats...</p>';
+
+        fetch('handle_actions.php?get_conversations=1')
+            .then(res => res.json())
+            .then(data => {
+                elements.msgConversations.innerHTML = '';
+                if (data.length === 0) {
+                    elements.msgConversations.innerHTML = '<p style="padding:20px; color:#888;">No messages yet.</p>';
+                    return;
+                }
+                data.forEach(convo => {
+                    const div = document.createElement('div');
+                    div.className = 'convo-item';
+                    div.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px; padding:15px; border-bottom:1px solid #eee; cursor:pointer;">
+                            <img src="${convo.profile_pic}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                            <div style="flex:1; overflow:hidden;">
+                                <strong style="display:block;">${convo.other_user_name}</strong>
+                                <small style="color:maroon;">${convo.product_name}</small>
+                                <p style="margin:0; font-size:0.8rem; color:#666; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${convo.last_message}</p>
+                            </div>
+                        </div>`;
+                    div.onclick = () => window.openChatUI(convo.product_id, convo.other_id, convo.other_user_name);
+                    elements.msgConversations.appendChild(div);
+                });
+            });
+    }
+
+    // Send Message Handler
+    function sendMessage() {
+        const message = elements.msgInput.value.trim();
+        if (!message) return;
+
+        const otherId = elements.msgModal.getAttribute('data-active-other');
+        const productId = elements.msgModal.getAttribute('data-active-product');
+
+        const fd = new FormData();
+        fd.append('send_message', '1');
+        fd.append('receiver_id', otherId);
+        fd.append('product_id', productId);
+        fd.append('message', message);
+
+        fetch('handle_actions.php', { method: 'POST', body: fd })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    elements.msgInput.value = '';
+                    window.openChatUI(productId, otherId, elements.msgTitle.innerText);
+                }
+            });
+    }
+
+    /**
+     * 6. EVENT LISTENERS
+     */
+
+    // Buying Logic (Event Delegation)
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('buy-btn')) {
+            const productId = e.target.getAttribute('data-id');
+            const sellerId = e.target.getAttribute('data-seller');
+            const productTitle = e.target.getAttribute('data-title');
+
+            const formData = new FormData();
+            formData.append('place_order', '1');
+            formData.append('product_id', productId);
+            formData.append('seller_id', sellerId);
+
+            fetch('handle_actions.php', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        window.openChatUI(productId, sellerId, productTitle);
+                    } else {
+                        alert(data.message || "Failed to place order.");
+                    }
+                });
+        }
+    });
+
+    // Marketplace Switching
+    elements.btnBuyer.addEventListener('click', () => switchMode(false));
+    elements.btnSeller.addEventListener('click', () => switchMode(true));
+
+    // Search & Filtering
+    if (elements.productSearch) elements.productSearch.addEventListener('input', updateFeed);
+    
+    filterPills.forEach(pill => {
         pill.addEventListener('click', () => {
-            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+            filterPills.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
             updateFeed();
         });
     });
 
-    if (el.productSearch) el.productSearch.addEventListener('input', updateFeed);
-
-    // ─────────────────────────────────────────────
-    // 5. BUY ITEM BUTTON (delegated — works after AJAX reload)
-    // ─────────────────────────────────────────────
-    document.addEventListener('click', e => {
-        const btn = e.target.closest('.buy-btn');
-        if (!btn) return;
-
-        const productId = btn.dataset.productId;
-        const sellerId = btn.dataset.sellerId;
-        const productName = btn.dataset.productName;
-
-        const fd = new FormData();
-        fd.append('place_order', '1');
-        fd.append('product_id', productId);
-        fd.append('seller_id', sellerId);
-
-        fetch('handle_actions.php', { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Order placed! Chat with the seller below.');
-                } else {
-                    showToast(data.message || 'Could not place order.');
-                }
-                openChat(productId, sellerId, productName);
-            })
-            .catch(() => {
-                openChat(productId, sellerId, productName);
-            });
-    });
-
-    // ─────────────────────────────────────────────
-    // 6. CONFIRM DEAL BUTTON (seller)
-    // ─────────────────────────────────────────────
-    document.addEventListener('click', e => {
-        const btn = e.target.closest('.confirm-deal-btn');
-        if (!btn) return;
-
-        if (!confirm('Confirm this deal? The product will be marked as Sold.')) return;
-
-        const fd = new FormData();
-        fd.append('confirm_deal', '1');
-        fd.append('order_id', btn.dataset.orderId);
-
-        fetch('handle_actions.php', { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Deal confirmed!');
-                    btn.closest('tr').querySelector('.status-pill').textContent = 'Completed';
-                    btn.closest('tr').querySelector('.status-pill').className = 'status-pill success';
-                    btn.replaceWith(Object.assign(document.createElement('span'),
-                        { textContent: '✓ Done', style: 'color:#27ae60; font-size:0.8rem;' }));
-                }
-            });
-    });
-
-    // --- MESSAGING LOGIC ---
-    function openChat(productId, otherUserId, productName) {
-        activeProductId = productId;
-        activeSellerId = otherUserId;
-
-        el.msgTitle.textContent = productName;
-        el.msgConvos.style.display = 'none';
-        el.msgThreadView.style.display = 'flex';
-        el.msgModal.classList.add('open');
-
-        loadThread();
-        clearInterval(msgPollTimer);
-        msgPollTimer = setInterval(loadThread, 3000);
-    }
-
-    window.openChatUI = openChat;
-
-    function loadThread() {
-        if (!activeProductId || !activeSellerId) return;
-        fetch(`handle_actions.php?get_messages=1&product_id=${activeProductId}&other_user=${activeSellerId}`)
-            .then(r => r.json())
-            .then(msgs => {
-                const atBottom = el.msgThread.scrollHeight - el.msgThread.scrollTop <= el.msgThread.clientHeight + 50;
-                el.msgThread.innerHTML = '';
-                if (!msgs.length) {
-                    el.msgThread.innerHTML = '<div class="msg-empty">No messages yet. Say hello!</div>';
-                    return;
-                }
-                msgs.forEach(m => {
-                    const bubble = document.createElement('div');
-                    bubble.className = `msg-bubble ${m.is_mine ? 'mine' : 'theirs'}`;
-                    const time = new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    bubble.innerHTML = `${escapeHtml(m.message)} <span class="msg-time">${time}</span>`;
-                    el.msgThread.appendChild(bubble);
-                });
-                if (atBottom) el.msgThread.scrollTop = el.msgThread.scrollHeight;
-            });
-    }
-
-    function loadConversations() {
-        el.msgConvos.innerHTML = '<div style="padding:20px; text-align:center; color:#aaa; font-size:0.85rem;">Loading...</div>';
-        el.msgConvos.style.display = 'block';
-        el.msgThreadView.style.display = 'none';
-
-        fetch('handle_actions.php?get_conversations=1')
-            .then(r => r.json())
-            .then(convos => {
-                if (!convos.length) {
-                    el.msgConvos.innerHTML = '<div style="padding:20px; text-align:center; color:#aaa; font-size:0.85rem;">No conversations yet.</div>';
-                    return;
-                }
-                el.msgConvos.innerHTML = '';
-                convos.forEach(c => {
-                    const div = document.createElement('div');
-                    div.className = 'convo-item';
-                    div.innerHTML = `
-                        <div class="convo-avatar" style="background-image: url('${c.profile_pic}');"></div>
-                        <div class="convo-details">
-                            <strong>${c.other_user_name}</strong>
-                            <span class="convo-product">${c.product_name}</span>
-                            <span class="convo-last-msg">${c.last_message}</span>
-                        </div>`;
-                    div.addEventListener('click', () => openChat(c.product_id, c.other_id, c.product_name));
-                    el.msgConvos.appendChild(div);
-                });
-            });
-    }
-
-    function sendMessage() {
-        const text = el.msgInput.value.trim();
-        if (!text || !activeProductId || !activeSellerId) return;
-        const fd = new FormData();
-        fd.append('send_message', '1');
-        fd.append('product_id', activeProductId);
-        fd.append('receiver_id', activeSellerId);
-        fd.append('message', text);
-        el.msgInput.value = '';
-        fetch('handle_actions.php', { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(data => { if (data.success) loadThread(); });
-    }
-
-    // --- EVENT ATTACHMENTS ---
-    el.msgSend.addEventListener('click', sendMessage);
-    el.msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
-    el.msgFloat.addEventListener('click', () => {
-        el.msgModal.classList.toggle('open');
-        if (el.msgModal.classList.contains('open')) loadConversations();
-    });
-    el.closeMsg.addEventListener('click', () => {
-        el.msgModal.classList.remove('open');
-        clearInterval(msgPollTimer);
-    });
-    el.msgBack.addEventListener('click', () => {
-        el.msgThreadView.style.display = 'none';
-        el.msgConvos.style.display = 'block';
-        el.msgTitle.textContent = 'Messages';
-        clearInterval(msgPollTimer);
-        activeProductId = null;
-        activeSellerId = null;
-        loadConversations();
-    });
-
-    // ─────────────────────────────────────────────
-    // 8. SIDEBAR NAVIGATION
-    // ─────────────────────────────────────────────
-    if (el.dynamicLink) {
-        el.dynamicLink.addEventListener('click', e => {
+    // Sidebar Navigation
+    if (elements.dynamicLink) {
+        elements.dynamicLink.addEventListener('click', (e) => {
             e.preventDefault();
             hideAllViews();
-            const isSeller = el.btnSeller.classList.contains('active');
-            if (isSeller) {
-                el.viewTxn.style.display = 'block';
+            if (elements.btnSeller.classList.contains('active')) {
+                elements.viewTransactions.style.display = 'block';
             } else {
-                el.viewCart.style.display = 'block';
+                elements.viewCart.style.display = 'block';
             }
-            el.dynamicLink.parentElement.classList.add('active');
+            elements.dynamicLink.parentElement.classList.add('active');
         });
     }
 
-    if (el.navMarketplace) {
-        el.navMarketplace.querySelector('a').addEventListener('click', e => {
-            e.preventDefault();
-            switchMode(el.btnSeller.classList.contains('active'));
-        });
+    // Modal Control (Messages)
+    if (elements.msgFloatBtn) {
+        elements.msgFloatBtn.onclick = () => {
+            elements.msgModal.classList.add('open');
+            elements.msgConversations.style.display = 'block';
+            elements.msgThreadView.style.display = 'none';
+            loadConversations();
+        };
     }
 
-    el.btnBuyer.addEventListener('click', () => switchMode(false));
-    el.btnSeller.addEventListener('click', () => switchMode(true));
+    if (elements.closeMsg) elements.closeMsg.onclick = () => elements.msgModal.classList.remove('open');
 
-    // ─────────────────────────────────────────────
-    // 9. FORM HELPERS
-    // ─────────────────────────────────────────────
-    if (el.categorySelect) {
-        el.categorySelect.addEventListener('change', function () {
-            el.otherCat.style.display = (this.value === '4') ? 'block' : 'none';
-        });
+    if (elements.msgBack) {
+        elements.msgBack.onclick = () => {
+            elements.msgThreadView.style.display = 'none';
+            elements.msgConversations.style.display = 'block';
+            loadConversations();
+        };
     }
 
-    if (el.uploadArea) {
-        el.uploadArea.addEventListener('click', () => el.fileInput.click());
-        el.fileInput.addEventListener('change', e => {
-            el.previewCont.innerHTML = '';
+    if (elements.msgSendBtn) elements.msgSendBtn.onclick = sendMessage;
+    if (elements.msgInput) {
+        elements.msgInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+    }
+
+    // Image & Lightbox Logic
+    if (elements.uploadArea) elements.uploadArea.onclick = () => elements.fileInput.click();
+    
+    if (elements.fileInput) {
+        elements.fileInput.onchange = (e) => {
+            elements.previewContainer.innerHTML = ''; 
             Array.from(e.target.files).forEach(file => {
                 const reader = new FileReader();
-                reader.onload = ev => {
+                reader.onload = (ev) => {
                     const img = document.createElement('img');
                     img.src = ev.target.result;
-                    img.className = 'preview-img';
-                    el.previewCont.appendChild(img);
+                    img.className = 'preview-img'; 
+                    elements.previewContainer.appendChild(img);
                 };
                 reader.readAsDataURL(file);
             });
-        });
+        };
     }
 
-    // ─────────────────────────────────────────────
-    // 10. LIGHTBOX
-    // ─────────────────────────────────────────────
-    document.addEventListener('click', e => {
+    document.addEventListener('click', (e) => {
         if (e.target.classList.contains('clickable-img')) {
-            el.overlayImg.src = e.target.src;
-            el.overlay.style.display = 'flex';
+            elements.overlayImg.src = e.target.src;
+            elements.overlay.style.display = 'flex';
         }
     });
-    if (el.closeOverlay) el.closeOverlay.addEventListener('click', () => el.overlay.style.display = 'none');
-    if (el.overlay) el.overlay.addEventListener('click', e => {
-        if (e.target === el.overlay) el.overlay.style.display = 'none';
-    });
 
-    // ─────────────────────────────────────────────
-    // 11. HELPERS
-    // ─────────────────────────────────────────────
-    function escapeHtml(str) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    function showToast(msg) {
-        const t = document.createElement('div');
-        t.textContent = msg;
-        Object.assign(t.style, {
-            position: 'fixed', bottom: '100px', right: '30px', background: '#1a1a2e', color: 'white',
-            padding: '12px 20px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: '600',
-            zIndex: '9999', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', transition: 'opacity 0.4s'
-        });
-        document.body.appendChild(t);
-        setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 3000);
-    }
+    if (elements.closeOverlay) elements.closeOverlay.onclick = () => elements.overlay.style.display = 'none';
 });

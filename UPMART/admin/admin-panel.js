@@ -72,30 +72,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 
-    function showPreview(title, seller, price, desc, img, category) {
-        const emptyState = document.getElementById('emptyState');
+    function showPreview(title, seller, price, description, imgUrl) {
+        // 1. Reveal the preview container and hide the empty state
+        document.getElementById('emptyState').style.display = 'none';
         const content = document.getElementById('previewContent');
-        const mainImg = document.getElementById('prevImg');
+        content.style.display = 'block';
 
-        if (mainImg) {
-            mainImg.src = img;
+        // 2. Map the text data
+        document.getElementById('prevTitle').innerText = title;
+        document.getElementById('prevSeller').innerText = "Seller: " + seller;
+        document.getElementById('prevPrice').innerText = price;
+        document.getElementById('prevDesc').innerText = description;
+
+        // 3. Set the image source
+        // Ensure you target the ID in your right-hand panel
+        const imgElement = document.getElementById('prevImg'); 
+        if (imgElement) {
+            imgElement.src = imgUrl;
         }
 
-        if (emptyState) emptyState.style.display = 'none';
-        if (content) {
-            content.style.display = 'block';
-            
-            document.getElementById('prevTitle').innerText = title;
-            document.getElementById('prevSeller').innerText = seller;
-            document.getElementById('prevPrice').innerText = price;
-            document.getElementById('prevDesc').innerText = desc;
-            document.getElementById('prevImg').src = img;
-            
-            // If your database query fetches the category name
-            if(category) {
-                document.getElementById('prevCategory').innerText = category;
-            }
-        }
+        // 4. Reset scroll position to top
+        document.getElementById('previewPanel').scrollTop = 0;
     }
 
     function approvePost(postId) {
@@ -123,3 +120,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    function updateAdminBadges() {
+        fetch('get_counts.php')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.querySelector('.notif-badge');
+                if (data.total > 0) {
+                    badge.innerText = data.total;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+    }
+
+// Check for new items every 60 seconds
+setInterval(updateAdminBadges, 60000);

@@ -4,7 +4,7 @@ include '../db_connect.php';
 
 // 1. Guard: Only allow Admins
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: ../login.php");
+    header("Location: ../index.php");
     exit();
 }
 
@@ -27,7 +27,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
             
             // 3. Prepare the notification text
             $sender_name = "System Admin";
-            $raw_msg = "<b>$sender_name</b>: Your post '" . $product['title'] . "' has been approved and is now live!";
+            $raw_msg = "<b>$sender_name</b>: Your post '" . $product['title'] . "' has been approved!";
         
 
             $safe_msg = mysqli_real_escape_string($conn, $raw_msg);
@@ -35,6 +35,12 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
             
             $admin_id = $_SESSION['user_id']; 
             $seller_id = $product['seller_id'];
+
+            if($seller_id > 0) {
+                $notif_query = "INSERT INTO notifications (user_id, sender_id, message, is_read) 
+                                VALUES ($seller_id, $admin_id, '$safe_msg', 0)";
+                $conn->query($notif_query);
+            }
 
             // 4. Insert into notifications using the escaped $safe_msg
             $notif_query = "INSERT INTO notifications (user_id, sender_id, message, is_read) 
@@ -49,8 +55,6 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
         }
     }
     elseif ($action === 'delete') {
-        // Instead of hard deleting, we set to Denied to provide feedback, 
-        // but your request asked for the delete logic:
         $conn->query("DELETE FROM products WHERE product_id = $p_id");
         header("Location: admin_post.php?msg=deleted");
         exit();
@@ -108,7 +112,7 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
             <li><a href="admin_report.php"><span>🔔</span> Reports</a></li>
 
             <div class="logout-container">
-                <a href="../includes/logout.php" class="logout-btn" style="text-decoration:none; display:block; text-align:center;">Logout</a>
+                <a href="../dashboard/logout.php" class="logout-btn" style="text-decoration:none; display:block; text-align:center;">Logout</a>
             </div>
         </ul>
     </div>
@@ -183,7 +187,7 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
                     <?php if ($posts->num_rows > 0): ?>
                         <?php while($row = $posts->fetch_assoc()): 
                             $all_images = explode(',', $row['all_images']);
-                            $img = !empty($all_images[0]) ? '../marketplace/' . $all_images[0] : '../marketplace/uploads/default.jpg';
+                            $img = !empty($all_images[0]) ? '../dashboard/' . $all_images[0] : '../dashboard/uploads/default.jpg';
                         ?>
                             <!-- CORRECTED: One opening div that wraps the entire card -->
                             <div class="post-item" 

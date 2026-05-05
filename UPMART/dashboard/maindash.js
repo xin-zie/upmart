@@ -8,19 +8,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const notifDrawer = document.getElementById('notifDrawer');
     const notifTrigger = document.getElementById('notifTrigger');
     const closeNotifBtn = document.getElementById('closeNotifBtn');
-
-    // Modals
+    
     const reportModal = document.getElementById('reportModal');
     const reportClose = document.getElementById('closeModal');
     const reportCancel = document.getElementById('cancelBtn');
+    const reportForm = document.getElementById('reportForm');
 
     const wishModal = document.getElementById('wishModal');
     const addWishBtn = document.querySelector('.add-wish-btn');
     const closeWishModal = document.getElementById('closeWishModal');
     const cancelWishBtn = document.getElementById('cancelWishBtn');
     const wishForm = document.getElementById('wishForm');
-
-    const reportForm = document.getElementById('reportForm');
 
     // 2. Chart.js Implementation
     if (chartCanvas) {
@@ -48,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
             if (confirm("Are you sure you want to logout of UPMart?")) {
-                window.location.href = "logout.php";
+                window.location.href = "logout.php"; 
             }
         });
     }
@@ -57,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (notifTrigger && notifDrawer) {
         notifTrigger.addEventListener('click', () => notifDrawer.classList.toggle('open'));
         if (closeNotifBtn) closeNotifBtn.addEventListener('click', () => notifDrawer.classList.remove('open'));
-
+        
         document.addEventListener('click', (e) => {
             if (!notifDrawer.contains(e.target) && !notifTrigger.contains(e.target)) {
                 notifDrawer.classList.remove('open');
@@ -67,10 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. Bulletin Logic
     function loadBulletin() {
-        // Changed back to root path
-        fetch('bulletin_controller.php?action=fetch')
+        fetch('bulletin_controller.php?action=fetch') 
             .then(res => res.text())
-            .then(data => { if (bulletinList) bulletinList.innerHTML = data; })
+            .then(data => { if(bulletinList) bulletinList.innerHTML = data; })
             .catch(err => console.error("Bulletin Error:", err));
     }
 
@@ -92,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch('bulletin_controller.php', { method: 'POST', body: formData })
                 .then(res => res.text())
                 .then(data => {
-                    if (data.trim() === "Success") {
+                    if (data.includes("Success")) {
                         bulletinInput.value = "";
                         loadBulletin();
                     }
@@ -101,8 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 5. Wishlist Logic
-    function loadWishes() {
-        // Changed back to root path
+    function loadWishes() { 
         fetch('wishlist_controller.php?action=fetch')
             .then(res => res.text())
             .then(data => {
@@ -112,17 +108,41 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(err => console.error("Wishlist Error:", err));
     }
 
-    window.handleMatch = function (wishId) {
-        alert("Match noted for Wish #" + wishId + "! We'll notify the requester.");
+    window.handleMatch = function(wishId) {
+        const formData = new FormData();
+        formData.append('action', 'match_wish');
+        formData.append('wish_id', wishId);
+
+        fetch('wishlist_controller.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Use your existing toast function for better UX than an alert
+                showToast("Match noted! Opening chat with " + data.requester_name + "...");
+                
+                // Trigger your existing chat UI
+                // We pass 0 for product_id as this is a wish match, not a direct product listing
+                if (window.openChatUI) {
+                    window.openChatUI(0, data.requester_id, "Wish Match: " + data.item_name);
+                }
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(err => console.error("Wish Match Error:", err));
     };
 
+    
     if (addWishBtn) {
-        addWishBtn.addEventListener('click', () => { wishModal.style.display = 'flex'; });
+        addWishBtn.addEventListener('click', () => { if(wishModal) wishModal.style.display = 'flex'; });
     }
 
-    const hideWishModal = () => {
-        wishModal.style.display = 'none';
-        if (wishForm) wishForm.reset();
+    const hideWishModal = () => { 
+        if(wishModal) wishModal.style.display = 'none'; 
+        if(wishForm) wishForm.reset(); 
     };
 
     if (closeWishModal) closeWishModal.onclick = hideWishModal;
@@ -135,15 +155,15 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('action', 'add');
 
             fetch('wishlist_controller.php', { method: 'POST', body: formData })
-                .then(res => res.text())
-                .then(data => {
-                    if (data.trim() === "Success") {
-                        hideWishModal();
-                        loadWishes();
-                    } else {
-                        alert("Error: " + data);
-                    }
-                });
+            .then(res => res.text())
+            .then(data => {
+                if (data.includes("Success")) {
+                    hideWishModal();
+                    loadWishes();
+                } else {
+                    alert("Error: " + data);
+                }
+            });
         });
     }
 
@@ -159,14 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
         reportForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const formData = new FormData(reportForm);
-            // Ensuring fields match report_handler.php
-            formData.append('type', document.getElementById('reportType').value);
-            formData.append('details', document.getElementById('reportDetails').value);
 
             fetch('report_handler.php', { method: 'POST', body: formData })
                 .then(res => res.text())
                 .then(data => {
-                    if (data.trim() === "Success") {
+                    if (data.includes("Success")) {
                         alert("Thank you. Your report has been submitted.");
                         reportForm.reset();
                         reportModal.style.display = 'none';
@@ -189,4 +206,23 @@ document.addEventListener('DOMContentLoaded', () => {
     loadWishes();
     setInterval(loadBulletin, 5000);
     setInterval(loadWishes, 30000);
+
+    function loadNotifications() {
+        const notifContainer = document.getElementById('notif-list-container');
+        if (!notifContainer) return;
+
+        // Fetch from your new controller
+        fetch('notif_controller.php?action=fetch')
+            .then(res => res.text())
+            .then(html => {
+                notifContainer.innerHTML = html;
+            })
+            .catch(err => console.error("Notification Fetch Error:", err));
+    }
+
+    // Initial load
+    loadNotifications();
+
+    // Optional: Refresh every 60 seconds to check for new admin approvals
+    setInterval(loadNotifications, 60000);
 });

@@ -2,7 +2,6 @@
 session_start();
 include '../db_connect.php';
 
-// 1. Session Security
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../index.php");
     exit();
@@ -10,23 +9,50 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// 2. Fetch User Data
+// --- REPORT SUBMISSION LOGIC (AJAX ONLY) ---
+if (isset($_POST['submit_report'])) {
+    header('Content-Type: application/json');
+    
+    $reporter_id = $_SESSION['user_id'];
+    $reported_id = intval($_POST['reported_user_id']); // Offender ID passed from JS
+    $reason      = mysqli_real_escape_string($conn, $_POST['reason']);
+    $details     = mysqli_real_escape_string($conn, $_POST['details']);
+
+    // Insert into reports table
+    $sql = "INSERT INTO reports (user_id, reported_user_id, reason, details, status) 
+            VALUES ($reporter_id, $reported_id, '$reason', '$details', 'Pending')";
+
+    $ok = $conn->query($sql);
+    echo json_encode(['success' => (bool)$ok]);
+    exit(); // Stop further execution to keep the response clean
+}
+
+// Fetch User Data
 $query = "SELECT full_name, profile_pic, is_setup_complete FROM users WHERE user_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 
-$profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'] : "../images/profile.jpg";
+$profile_img = (!empty($user['profile_pic'])) 
+               ? "uploads/" . $user['profile_pic'] 
+               : "../images/profile.jpg";
+
 $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
 
-// 3. Fetch Wishlist Items (Public - Everyone sees everything)
+
+// Fetch Wishlist Items
 $wish_query = "SELECT w.*, u.full_name FROM wishlist w 
                JOIN users u ON w.user_id = u.user_id 
-               ORDER BY w.created_at DESC LIMIT 6"; // Increased limit to 6
-$wish_stmt = $conn->prepare($wish_query);
-$wish_stmt->execute(); // No need to bind_param since we removed the '?'
-$wish_results = $wish_stmt->get_result();
+               ORDER BY w.created_at DESC LIMIT 6";
+$wish_results = $conn->query($wish_query);
+
+// Count unread notifications
+$notif_count_query = "SELECT COUNT(*) as total FROM notifications WHERE user_id = $user_id AND is_read = 0";
+$notif_count_res = $conn->query($notif_count_query);
+$unread_count = $notif_count_res->fetch_assoc()['total'] ?? 0;
+$notif_list_query = "SELECT * FROM notifications WHERE user_id = $user_id ORDER BY created_at DESC LIMIT 5";
+$notif_list_res = $conn->query($notif_list_query);
 ?>
 
 <!DOCTYPE html>
@@ -135,7 +161,7 @@ $wish_results = $wish_stmt->get_result();
         </div>
 
         <div class="profile-container">
-            <img src="<?= $profile_pic ?>" class="profile-img">
+            <img src="<?= $profile_img ?>" class="profile-img">
         </div>
 
         <div class="profile-info">
@@ -158,8 +184,15 @@ $wish_results = $wish_stmt->get_result();
             <h1 style="font-size: 1.4rem; margin-top: 10px;"><span>🏠︎</span> Dashboard</h1>
 
             <div class="status-indicators">
-                <button class="icon-btn" id="notifTrigger"><span class="material-icons">notifications</span><span class="notif-badge"></span></button>
-                <button class="icon-btn" onclick="openReportModal()"><span class="material-icons">report</span></button>
+                <button class="icon-btn" id="notifTrigger" style="position: relative;">
+                <span class="material-icons">notifications</span>
+                <?php if ($unread_count > 0): ?>
+                    <span class="notif-badge" style="background: #9a0000; color: white; position: absolute; top: -2px; right: -2px; border-radius: 50%; padding: 2px 5px; font-size: 0.65rem; font-weight: bold; border: 2px solid white;">
+                        <?= $unread_count ?>
+                    </span>
+                <?php endif; ?>
+                </button>
+                <button class="icon-btn" onclick="openReportModal(0)"><span class="material-icons">report</span></button>   
             </div>
         </div>
 
@@ -188,7 +221,7 @@ $wish_results = $wish_stmt->get_result();
                                     </div>
                                     <button class="match-btn" onclick="handleMatch(<?= $wish['wish_id'] ?>)">I have this!</button>
                                 </div>
-                            <?php endwhile; ?>
+                            <?php endwhile; ?>  
                         <?php else: ?>
                             <p style="padding: 20px; color: #888;">No wishes found. Be the first to ask for something!</p>
                         <?php endif; ?>
@@ -220,6 +253,9 @@ $wish_results = $wish_stmt->get_result();
                 <div id="bulletinList" class="bulletin-list"></div>
             </div>
         </section>
+        <div class="footer">
+            <p>&copy;2026 UPMart. All rights reserved.</p>
+        </div>
     </div>
 
     <div id="reportModal" class="modal-overlay">
@@ -230,6 +266,11 @@ $wish_results = $wish_stmt->get_result();
             </div>
 
             <form id="reportForm">
+                <input type="hidden" id="reportedUserId" name="reported_user_id" value="0">
+
+                <label for="reportType">Unsername</label>           
+                <input type="text" id="reportedUserId" name="reported_user_id">
+
                 <label for="reportType">Reason for Report</label>
                 <select id="reportType" required>
                     <option value="">Select a reason...</option>

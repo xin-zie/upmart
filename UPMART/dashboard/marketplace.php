@@ -10,13 +10,20 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$query = "SELECT full_name, profile_pic FROM users WHERE user_id = ?";
+// Fetch User Data
+$query = "SELECT full_name, profile_pic, is_setup_complete FROM users WHERE user_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user = $stmt->get_result()->fetch_assoc();
 
-$profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'] : "../images/profile.jpg";
+$profile_img = (!empty($user['profile_pic'])) 
+               ? "uploads/" . $user['profile_pic'] 
+               : "../images/profile.jpg";
+
+$show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
+
+
 ?>
 
 <!DOCTYPE html>
@@ -41,8 +48,8 @@ $profile_pic = !empty($user['profile_pic']) ? "../images/" . $user['profile_pic'
         </div>
 
         <div class="profile-container">
-            <img src="<?= $profile_pic ?>" class="profile-img">
-        </div>
+            <img src="<?= $profile_img ?>" class="profile-img">
+        </div>  
 
         <div class="profile-info">
             <span class="profile-name"><?= htmlspecialchars($user['full_name']) ?></span>
