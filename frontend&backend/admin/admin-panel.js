@@ -73,17 +73,69 @@ function handlePost(postId, action) {
     }, 300);
 }
 
-function showPreview(title, seller, price, desc, img) {
-    const emptyState = document.getElementById('emptyState');
-    const content = document.getElementById('previewContent');
 
-    if (emptyState) emptyState.style.display = 'none';
-    if (content) {
+    function showPreview(title, seller, price, description, imgUrl) {
+        // 1. Reveal the preview container and hide the empty state
+        document.getElementById('emptyState').style.display = 'none';
+        const content = document.getElementById('previewContent');
         content.style.display = 'block';
+
+        // 2. Map the text data
         document.getElementById('prevTitle').innerText = title;
         document.getElementById('prevSeller').innerText = "Seller: " + seller;
         document.getElementById('prevPrice').innerText = price;
-        document.getElementById('prevDesc').innerText = desc;
-        document.getElementById('prevImg').src = img;
+        document.getElementById('prevDesc').innerText = description;
+
+        // 3. Set the image source
+        // Ensure you target the ID in your right-hand panel
+        const imgElement = document.getElementById('prevImg'); 
+        if (imgElement) {
+            imgElement.src = imgUrl;
+        }
+
+        // 4. Reset scroll position to top
+        document.getElementById('previewPanel').scrollTop = 0;
     }
+
+    function approvePost(postId) {
+        const postElement = document.getElementById(`post-${postId}`);
+
+        // Send the ID to our PHP script
+        fetch('admin_approve.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `product_id=${postId}`
+        })
+        .then(response => response.text())
+        .then(data => {
+            if (data === "success") {
+                // Animate and remove from the Admin's view
+                postElement.style.transition = '0.4s ease';
+                postElement.style.opacity = '0';
+                postElement.style.transform = 'scale(0.9)';
+                
+                setTimeout(() => {
+                    postElement.remove();
+                    // Update the pending count badge if you have one
+                    updatePendingBadge(); 
+                }, 400);
+            }
+        });
+    }
+
+    function updateAdminBadges() {
+    fetch('get_counts.php')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.querySelector('.notif-badge');
+            if (data.total > 0) {
+                badge.innerText = data.total;
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
 }
+
+// Check for new items every 60 seconds
+setInterval(updateAdminBadges, 60000);
