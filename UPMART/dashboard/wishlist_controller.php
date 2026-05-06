@@ -9,26 +9,38 @@ ini_set('display_errors', 1);
 $action = $_REQUEST['action'] ?? '';
 
 // --- ACTION: ADD A NEW WISH ---
-if ($action === 'add') {
-    if (!isset($_SESSION['user_id'])) {
-        die("Error: Login required.");
-    }
-
+if (isset($_POST['action']) && $_POST['action'] === 'add') {
+    $item_name = mysqli_real_escape_string($conn, $_POST['item_name']);
     $user_id = $_SESSION['user_id'];
-    $item_name = trim($_POST['item_name'] ?? '');
-    $category = $_POST['category'] ?? 'Other';
+    
+    // Get the name from the <select>
+    $category_name = $_POST['category'];
 
-    if (!empty($item_name)) {
-        $stmt = $conn->prepare("INSERT INTO wishlist (user_id, item_name, category) VALUES (?, ?, ?)");
-        $stmt->bind_param("iss", $user_id, $item_name, $category);
-        
-        if ($stmt->execute()) {
-            echo "Success";
-        } else {
-            echo "SQL Error: " . $stmt->error;
-        }
+    // --- CATEGORY LOOKUP MAP ---
+    $category_map = [
+        "Dorm Essentials" => 1,
+        "Arki Mats"       => 2,
+        "Lab Essentials"  => 3,
+        "Fashion"         => 4,
+        "Books"           => 5,
+        "Services"        => 6,
+        "Foods"           => 7,
+        "School Supplies" => 8,
+        "Art Materials"   => 9,
+        "Others"          => 10
+    ];
+
+    // Convert the name to an ID. Default to 10 (Others) if not found.
+    $category_id = $category_map[$category_name] ?? 10;
+
+    // --- INSERT INTO DATABASE ---
+    $stmt = $conn->prepare("INSERT INTO wishlist (user_id, item_name, category_id) VALUES (?, ?, ?)");
+    $stmt->bind_param("isi", $user_id, $item_name, $category_id);
+
+    if ($stmt->execute()) {
+        echo "Success";
     } else {
-        echo "Error: Item name cannot be empty.";
+        echo "Error: " . $conn->error;
     }
     exit();
 }
@@ -64,6 +76,8 @@ if ($action === 'fetch') {
 
 // --- ACTION: MATCH A WISH (COMBINED & SECURE) ---
 if ($action === 'match_wish') {
+    // 1. Clear any previous output (warnings/notices) to prevent breaking JSON
+    if (ob_get_length()) ob_clean();
     header('Content-Type: application/json');
     
     if (!isset($_SESSION['user_id'])) {
@@ -87,28 +101,35 @@ if ($action === 'match_wish') {
 
     if ($wish) {
         $requester_id = $wish['user_id'];
-        $requester_name = $wish['full_name'];
+        $requester= $wish['full_name'];
         $item_name = $wish['item_name'];
-        
-        // 2. Insert notification for the Requester
-        $notif_msg = "<b>$seller_name</b> has the item you are looking for: '$item_name'!";
-        
-        $notif_sql = "INSERT INTO notifications (user_id, sender_id, message, is_read) 
-                      VALUES (?, ?, ?, 0)";
+
+        // 1. Insert the Notification (Current Logic)
+        $notif_msg = "<b>{$_SESSION['full_name']}</b> has the item: '$item_name'!";
+        // In wishlist_controller.php:
+        $notif_sql = "INSERT INTO notifications (user_id, sender_id, message, notif_type, target_id, is_read) 
+                    VALUES (?, ?, ?, 'wish_match', ?, 0)";
         $notif_stmt = $conn->prepare($notif_sql);
-        $notif_stmt->bind_param("iis", $requester_id, $seller_id, $notif_msg);
-        
-        if ($notif_stmt->execute()) {
+        $notif_stmt->bind_param("iisi", $requester_id, $seller_id, $notif_msg, $wish_id);
+        $notif_stmt->execute();
+
+        // 2. NEW: Insert the actual message into the database
+        // This ensures the message is stored and visible to both users
+        $init_msg = "Hi! I have the '$item_name' you're looking for.";
+        $msg_sql = "INSERT INTO messages (product_id, sender_id, receiver_id, message_text) VALUES (0, ?, ?, ?)";
+        $msg_stmt = $conn->prepare($msg_sql);
+        $msg_stmt->bind_param("iis", $seller_id, $requester_id, $init_msg);
+
+       if ($msg_stmt->execute()) {
             echo json_encode([
                 'success' => true, 
-                'requester_id' => $requester_id, 
-                'requester_name' => $requester_name,
-                'item_name' => $item_name
+                'item_name' => $item_name, 
+                'requester' => $wish['full_name']
             ]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Database error.']);
+            echo json_encode(['success' => false, 'message' => 'Database error: ' . $conn->error]);
         }
-    } else {
+    }else {
         echo json_encode(['success' => false, 'message' => 'Wish not found.']);
     }
     exit();
