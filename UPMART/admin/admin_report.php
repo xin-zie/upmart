@@ -1,6 +1,6 @@
 <?php
 session_start();
-include '../db_connect.php'; 
+include '../db_connect.php';
 
 // 1. Guard
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -14,7 +14,7 @@ $reports = $conn->query($query);
 
 if (!$reports) {
     // This will tell you if your table name or column names are wrong
-    die("Query Failed: " . $conn->error); 
+    die("Query Failed: " . $conn->error);
 }
 
 // Count posts that need admin approval
@@ -39,7 +39,7 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="admin-panel.css">
-    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="icon" href="../images/favicon.png" type="image/png">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 
@@ -97,6 +97,20 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
             </div>
         </nav>
 
+        <!-- Admin Notification Drawer -->
+        <div class="notif-drawer" id="notifDrawer">
+            <div class="drawer-header">
+                <div class="header-left">
+                    <h2 style="margin:0; font-size:1.2rem;">Notifications</h2>
+                    <span id="notif-status-text" class="update-count" style="font-size:0.8rem; color:#888;">Recent updates</span>
+                </div>
+                <button class="close-drawer" id="closeNotifBtn" style="cursor:pointer; font-size: 24px;">&times;</button>
+            </div>
+            <div class="drawer-body" id="notif-list-container">
+                <!-- JS will inject notifications here -->
+            </div>
+        </div>
+
         <div class="content-row">
             <div class="about-text">
                 <p>Review and take action on reported content or users.</p>
@@ -108,24 +122,28 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
                 <div class="header-text">
                     <h3>List of Reports</h3>
                 </div>
-                <div class="filter-options">
-                    <select id="reportFilter">
+                <div id="reportFilter">
+                    <select class="reportType">
                         <option value="all">All Reports</option>
-                        <option value="scam">Scams</option>
-                        <option value="harassment">Harassment</option>
+                        <option value="scam">Potential Scam / Fraud</option>
+                        <option value="inappropriate">Inappropriate Content</option>
+                        <option value="false_info">False Information</option>
+                        <option value="spam">Spam</option>
+                        <option value="sexual_activity">Sexual Activity</option>
+                        <option value="other">Other</option>
                     </select>
                 </div>
             </div>
 
             <div class="reports-list">
                 <?php if ($reports->num_rows > 0): ?>
-                    <?php while($row = $reports->fetch_assoc()): ?>
+                    <?php while ($row = $reports->fetch_assoc()): ?>
                         <div class="report-card">
                             <div class="report-main">
                                 <div class="report-type">
                                     <span class="material-icons warning-icon">report_problem</span>
                                     <div>
-                                        <h4><?= htmlspecialchars($row['reason']) ?></h4> 
+                                        <h4><?= htmlspecialchars($row['reason']) ?></h4>
                                         <span class="report-date">
                                             Reported <?= date('M d, g:i A', strtotime($row['created_at'])) ?>
                                         </span>
@@ -141,10 +159,10 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
                             </div>
                             <div class="report-actions">
                                 <button class="view-btn">Investigate</button>
-                                <a href="admin_report.php?action=dismiss&id=<?= $row['report_id'] ?>" 
-                                onclick="return confirm('Dismiss this report?')" 
-                                class="dismiss-btn" style="text-decoration:none; padding: 10px; font-size: 0.8rem;">
-                                Dismiss
+                                <a href="admin_report.php?action=dismiss&id=<?= $row['report_id'] ?>"
+                                    onclick="return confirm('Dismiss this report?')"
+                                    class="dismiss-btn" style="text-decoration:none; padding: 10px; font-size: 0.8rem;">
+                                    Dismiss
                                 </a>
                             </div>
                         </div>
@@ -153,7 +171,7 @@ $total_admin_notifs = $pending_post_count + $pending_report_count;
                     <p style="text-align: center; color: #888; padding: 20px;">No pending reports found.</p>
                 <?php endif; ?>
             </div>
-        </section>  
+        </section>
     </div>
 
     <script src="admin-panel.js"></script>
