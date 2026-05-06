@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch User Data
+// Fetch User Data(Profile Pic, Full Name, Setup Status)
 $query = "SELECT full_name, profile_pic, is_setup_complete FROM users WHERE user_id = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("i", $user_id);
@@ -144,7 +144,16 @@ $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
                                     <span class="post-time"><span class="cat-tag"><?php echo $row['category_name']; ?></span></span>
                                 </div>
                             </div>
+                            <div style="display:flex; align-items:center; gap:6px;">
                             <div class="post-price">&#8369;<?php echo number_format($row['price'], 2); ?></div>
+                            <button class="icon-btn post-report-btn"
+                                data-product-id="<?php echo $row['product_id']; ?>"
+                                data-product-name="<?php echo htmlspecialchars($row['title'], ENT_QUOTES); ?>"
+                                title="Report listing"
+                                onclick="openPostReportModal(<?php echo $row['product_id']; ?>, '<?php echo htmlspecialchars($row['title'], ENT_QUOTES); ?>')">
+                                <span class="material-icons" style="font-size:16px;">report</span>
+                            </button>
+                        </div>
                         </div>
                         <h5 class="product-description"><?php echo htmlspecialchars($row['title']); ?></h5>
                         <p class="product-description"><?php echo htmlspecialchars($row['description']); ?></p>
@@ -231,7 +240,7 @@ $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
                         <div class="upload-area" id="dropzone-area">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <p>Drag & Drop or Click to upload image</p>
-                            <input type="file" name="product_images[]" id="file-input" hidden accept="image/*" multiple>
+                            <input type="file" name="product_image[]" id="file-input" hidden accept="image/*" multiple>
                         </div>
                         <div id="image-preview-container" class="preview-grid"></div>
                         <button type="submit" name="create_post" id="form-submit-btn" class="post-btn">Publish Post</button>
@@ -247,31 +256,39 @@ $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
                 <table class="modern-table">
                     <thead>
                         <tr>
+                            <th>Order #</th>
+                            <th>Product ID</th>
                             <th>Product</th>
+                            <th>Seller</th>
                             <th>Price</th>
                             <th>Status</th>
+
                         </tr>
                     </thead>
                     <tbody>
                         <?php
-                        $orders = $conn->query("SELECT o.*, p.title, p.price 
-                                           FROM orders o 
-                                           JOIN products p ON o.product_id = p.product_id 
-                                           WHERE o.buyer_id = $my_id 
-                                      ORDER BY o.created_at DESC");
+                        $orders = $conn->query("SELECT o.*, p.title, p.price, p.product_id as pid, u.full_name as seller_name
+                                                FROM orders o 
+                                                JOIN products p ON o.product_id = p.product_id
+                                                JOIN users u ON o.seller_id = u.user_id
+                                                WHERE o.buyer_id = $my_id 
+                                                ORDER BY o.created_at DESC");
                         if ($orders && $orders->num_rows > 0):
                             while ($c = $orders->fetch_assoc()):
                                 $pill = strtolower($c['status']) === 'completed' ? 'success' : 'pending';
                         ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($c['title']); ?></td>
-                                    <td>&#8369;<?php echo number_format($c['price'], 2); ?></td>
-                                    <td><span class="status-pill <?php echo $pill; ?>"><?php echo $c['status']; ?></span></td>
-                                </tr>
+                            <tr>
+                                <td style="color:#aaa; font-size:0.78rem; font-weight:700;">#<?php echo $c['order_id']; ?></td>
+                                <td style="color:#aaa; font-size:0.78rem;">P-<?php echo $c['pid']; ?></td>
+                                <td><?php echo htmlspecialchars($c['title']); ?></td>
+                                <td><?php echo htmlspecialchars($c['seller_name']); ?></td>
+                                <td>&#8369;<?php echo number_format($c['price'], 2); ?></td>
+                                <td><span class="status-pill <?php echo $pill; ?>"><?php echo $c['status']; ?></span></td>
+                            </tr>
                             <?php endwhile;
                         else: ?>
                             <tr>
-                                <td colspan="3" style="text-align:center; color:#aaa; padding:30px;">No orders yet.</td>
+                                <td colspan="6" style="text-align:center; color:#aaa; padding:30px;">No orders yet.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -286,27 +303,34 @@ $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
                 <table class="transaction-table">
                     <thead>
                         <tr>
+                            <th>Order #</th>
+                            <th>Product ID</th>
                             <th>Product</th>
                             <th>Buyer</th>
+                            <th>Buyer ID</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php
-                        $sales = $conn->query("SELECT o.*, p.title, u.full_name 
-                                          FROM orders o 
-                                          JOIN products p ON o.product_id = p.product_id 
-                                          JOIN users u ON o.buyer_id = u.user_id 
-                                          WHERE o.seller_id = $my_id 
-                                          ORDER BY o.created_at DESC");
+                        $sales = $conn->query("SELECT o.order_id, o.product_id, o.buyer_id, o.status,
+                                                    p.title, u.full_name
+                                            FROM orders o 
+                                            JOIN products p ON o.product_id = p.product_id 
+                                            JOIN users u ON o.buyer_id = u.user_id 
+                                            WHERE o.seller_id = $my_id 
+                                            ORDER BY o.created_at DESC");
                         if ($sales && $sales->num_rows > 0):
                             while ($s = $sales->fetch_assoc()):
                                 $pill = strtolower($s['status']) === 'completed' ? 'success' : 'pending';
                         ?>
                                 <tr>
+                                    <td style="color:#aaa; font-size:0.78rem; font-weight:700;">#<?php echo $s['order_id']; ?></td>
+                                    <td style="color:#aaa; font-size:0.78rem;">P-<?php echo $s['product_id']; ?></td>
                                     <td><?php echo htmlspecialchars($s['title']); ?></td>
                                     <td><?php echo htmlspecialchars($s['full_name']); ?></td>
+                                    <td style="color:#aaa; font-size:0.78rem;">U-<?php echo $s['buyer_id']; ?></td>
                                     <td><span class="status-pill <?php echo $pill; ?>"><?php echo $s['status']; ?></span></td>
                                     <td>
                                         <?php if ($s['status'] === 'Pending'): ?>
@@ -321,7 +345,7 @@ $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
                             <?php endwhile;
                         else: ?>
                             <tr>
-                                <td colspan="4" style="text-align:center; color:#aaa; padding:30px;">No sales yet.</td>
+                                <td colspan="7" style="text-align:center; color:#aaa; padding:30px;">No sales yet.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -356,6 +380,32 @@ $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
                     <button id="msg-send"><i class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
+        </div>
+    </div>
+    <div id="postReportModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Report Listing</h3>
+                <span class="close-modal" id="closePostReportModal">&times;</span>
+            </div>
+            <p id="postReportLabel" style="font-size:0.82rem; color:#888; margin-bottom:14px;"></p>
+            <form id="postReportForm">
+                <label for="postReportType">Reason for Report</label>
+                <select id="postReportType" required>
+                    <option value="">Select a reason...</option>
+                    <option value="scam">Potential Scam / Fraud</option>
+                    <option value="inappropriate">Inappropriate Content</option>
+                    <option value="misleading">Misleading Description</option>
+                    <option value="overpriced">Unreasonable Price</option>
+                    <option value="other">Other</option>
+                </select>
+                <label for="postReportDetails">Details</label>
+                <textarea id="postReportDetails" placeholder="Please describe the issue in detail..." required></textarea>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" id="cancelPostReportBtn">Cancel</button>
+                    <button type="submit" class="btn-submit">Submit Report</button>
+                </div>
+            </form>
         </div>
     </div>
 
