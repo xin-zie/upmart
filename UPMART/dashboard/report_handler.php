@@ -1,19 +1,21 @@
 <?php
 session_start();
-include 'db_connect.php'; // Path depends on where this file is
+include '../db_connect.php'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $type = $_POST['type'];
-    $details = $_POST['details'];
-    $user_id = $_SESSION['user_id'] ?? 0;
+    $product_id  = intval($_POST['product_id']);
+    $reporter_id = $_SESSION['user_id'];    
+    $reason      = $_POST['type'];
+    $details     = $_POST['details'];
 
-    $stmt = $conn->prepare("INSERT INTO reports (reason, details, status, created_at) VALUES (?, ?, 'Pending', NOW())");
-    $stmt->bind_param("ss", $type, $details);
+    // We leave reported_user_id as NULL for now because we are focusing on the product
+    $stmt = $conn->prepare("INSERT INTO reports (reporter_id, product_id, reason, details, status) VALUES (?, ?, ?, ?, 'Pending')");
+    $stmt->bind_param("iiss", $reporter_id, $product_id, $reason, $details);
 
     if ($stmt->execute()) {
         echo "Success";
     } else {
-        echo "Error: " . $conn->error;
+        echo "Database Error: " . $stmt->error;
     }
+    exit();
 }
-?>
