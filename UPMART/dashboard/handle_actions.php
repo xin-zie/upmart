@@ -129,31 +129,40 @@ if (isset($_POST['confirm_deal'])) {
 
 // --- MESSAGING SYSTEM (AJAX) ---
 
-// 1. GET CONVERSATION LIST
+// 1. GET CONVERSATION LIST (inbox)
 if (isset($_GET['get_conversations'])) {
-    $query = "SELECT m.message_text as last_message, 
+    $query = "SELECT m.message_text as last_msg, 
                      u.full_name as other_user_name, 
                      u.profile_pic, 
-                     p.title as product_name, 
-                     p.product_id,
+                     p.title as prod_title, 
+                     m.product_id,
                      CASE WHEN m.sender_id = $me THEN m.receiver_id ELSE m.sender_id END as other_id
               FROM messages m
               JOIN (
                   SELECT MAX(message_id) as max_id 
                   FROM messages 
                   WHERE sender_id = $me OR receiver_id = $me 
-                  GROUP BY product_id
+                  GROUP BY COALESCE(product_id, 0), 
+                           CASE WHEN sender_id = $me THEN receiver_id ELSE sender_id END
               ) latest ON m.message_id = latest.max_id
               JOIN users u ON u.user_id = (CASE WHEN m.sender_id = $me THEN m.receiver_id ELSE m.sender_id END)
-              JOIN products p ON m.product_id = p.product_id
+              LEFT JOIN products p ON m.product_id = p.product_id
               ORDER BY m.created_at DESC";
     
     $res = $conn->query($query);
     $convos = [];
-    while($row = $res->fetch_assoc()) { 
-        // Logic to ensure the dashboard can find the images
-        $row['profile_pic'] = (!empty($row['profile_pic'])) ? $row['profile_pic'] : '../images/profile.jpg';
-        $convos[] = $row; 
+    while ($row = $res->fetch_assoc()) {
+        $profile_pic = !empty($row['profile_pic']) ? $row['profile_pic'] : 'assets/profile.jpg';
+        $display_title = $row['prod_title'] ?? "Wishlist Match";
+
+        $convos[] = [
+            'other_id'        => $row['other_id'],
+            'other_user_name' => $row['other_user_name'],
+            'profile_pic'     => $profile_pic,
+            'product_id'      => $row['product_id'] ?? 0,
+            'prod_title'      => $display_title, // This now sends "Wishlist Match" or the Real Title
+            'last_msg'        => $row['last_msg']
+        ];
     }
     echo json_encode($convos);
     exit();
@@ -164,12 +173,19 @@ if (isset($_GET['get_messages'])) {
     $other = intval($_GET['other_user']);
     $p_id = intval($_GET['product_id']);
 
-    // Mark notifications as read when Glendy or Natasha opens the chat
+    // Mark notifications as read
     $conn->query("UPDATE notifications SET is_read = 1 
                   WHERE user_id = $me AND sender_id = $other");
 
+    // --- CRITICAL FIX: Handle Wishlist matches (NULL) vs Products (ID) ---
+    if ($p_id === 0) {
+        $product_clause = "product_id IS NULL";
+    } else {
+        $product_clause = "product_id = $p_id";
+    }
+
     $query = "SELECT * FROM messages 
-              WHERE product_id = $p_id 
+              WHERE $product_clause 
               AND ((sender_id = $me AND receiver_id = $other) 
               OR (sender_id = $other AND receiver_id = $me)) 
               ORDER BY created_at ASC";
@@ -179,7 +195,8 @@ if (isset($_GET['get_messages'])) {
     while($row = $res->fetch_assoc()) {
         $msgs[] = [
             'message' => $row['message_text'],
-            'sent_at' => $row['created_at'],
+            // Formatting the time makes it look better in the chat bubble
+            'sent_at' => date('g:i A', strtotime($row['created_at'])),
             'is_mine' => ($row['sender_id'] == $me)
         ];
     }
@@ -192,29 +209,42 @@ if (isset($_POST['send_message'])) {
     $receiver_id = intval($_POST['receiver_id']);
     $product_id = intval($_POST['product_id']);
     $message = mysqli_real_escape_string($conn, $_POST['message']);
+    
+    // Convert 0 to NULL so it stores correctly in the messages table
+    // (Ensure your 'messages' table allows NULL for product_id)
+    $db_product_id = ($product_id === 0) ? "NULL" : $product_id;
 
     if (!empty($message)) {
         $insert = "INSERT INTO messages (product_id, sender_id, receiver_id, message_text) 
-                   VALUES ($product_id, $me, $receiver_id, '$message')";
+                   VALUES ($db_product_id, $me, $receiver_id, '$message')";
         
         if ($conn->query($insert)) {
             $sender_name = $_SESSION['full_name'];
             
-            // --- NEW: Fetch the product title ---
-            $p_res = $conn->query("SELECT title FROM products WHERE product_id = $product_id");
-            $p_row = $p_res->fetch_assoc();
-            $product_title = $p_row['title'];
+            // LOGIC FOR WISHLIST MATCHES (product_id 0)
+            if ($product_id === 0) {
+                $notif_text = "<b>$sender_name</b> sent you a message about your <b>Wish</b>.";
+                $notif_type = 'wish_match';
+                $target_id = 0; // Or link back to the specific wish_id if you have it
+            } 
+            // LOGIC FOR REGULAR PRODUCTS
+            else {
+                $p_res = $conn->query("SELECT title FROM products WHERE product_id = $product_id");
+                $p_row = $p_res ? $p_res->fetch_assoc() : null;
+                $product_title = $p_row['title'] ?? 'Product';
 
-            // --- Updated notification format ---
-            // Result: "Natasha Christine messaged on your pillow product"
-            $notif_text = "<b>$sender_name</b> messaged on your <b>$product_title</b> product";
-            
+                $notif_text = "<b>$sender_name</b> messaged on your <b>$product_title</b> product";
+                $notif_type = 'message';
+                $target_id = $product_id;
+            }
+
+            // Insert notification for the receiver
             $conn->query("INSERT INTO notifications (user_id, sender_id, message, notif_type, target_id, is_read) 
-                          VALUES ($receiver_id, $me, '$notif_text', 'message', $product_id, 0)");
+                          VALUES ($receiver_id, $me, '$notif_text', '$notif_type', $target_id, 0)");
                         
             echo json_encode(['success' => true]);
         } else {
-            echo json_encode(['success' => false]);
+            echo json_encode(['success' => false, 'error' => $conn->error]);
         }
     }
     exit();
