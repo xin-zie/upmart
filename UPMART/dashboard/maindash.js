@@ -89,27 +89,44 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(err => console.error("Wishlist Error:", err));
     }
+    
+    function handleMatch(wishId) {
+        if (!confirm("Confirm that you have this item? This will notify the requester.")) return;
+
+        const fd = new FormData();
+        fd.append('action', 'match_wish');
+        fd.append('wish_id', wishId);
+
+        fetch('wishlist_controller.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Match sent! You can now chat with ${data.requester}.`);
+                    // Automatically open the chat for Natasha so she can start the conversation
+                    openChat(0, data.requester_id, "Wish: " + data.item_name);
+                } else {
+                    showToast(data.message || "Could not send match.");
+                }
+            })
+            .catch(err => {
+                console.log(err); // This will print the actual error to your F12 console
+                alert("Check the console for the error details.");
+            });
+    }
 
     window.handleMatch = function(wishId) {
-        const formData = new FormData();
-        formData.append('action', 'match_wish');
-        formData.append('wish_id', wishId);
+        if (!confirm("Notify the requester that you have this?")) return;
+        const fd = new FormData();
+        fd.append('action', 'match_wish');
+        fd.append('wish_id', wishId);
 
-        fetch('wishlist_controller.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(res => res.json()) // Change .text() to .json()
-        .then(data => {
-            if (data.success) {
-                alert(`Match noted for ${data.item_name}! ${data.requester_name} has been notified.`);
-            } else {
-                alert("Error: " + data.message);
-            }
-        })
-        .catch(err => {
-            alert("Could not send match! Please try again.");
-        });
+        fetch('wishlist_controller.php', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Requester notified! You can now find this in your messages.");
+                }
+            });
     };
 
     if (addWishBtn) {       
@@ -211,11 +228,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.handleNotifClick = function(type, senderId, senderName, itemName) {
-    if (type === 'wish_match') {
-        // Redirect to marketplace and auto-trigger the chat via URL parameters
-        window.location.href = `marketplace.php?open_chat=1&user_id=${senderId}&name=${encodeURIComponent(senderName)}&item=${encodeURIComponent(itemName)}`;
-    } else if (type === 'message') {
-        alert("Opening message from " + senderName);
+    if (type === 'wish_match' || type === 'message') {
+        // user_id and item are the keys we look for in script.js
+        const url = `marketplace.php?open_chat=1&user_id=${senderId}&item=${encodeURIComponent(itemName)}`;
+        window.location.href = url;
     } else if (type === 'order') {
         window.location.href = "marketplace.php?view=orders";
     }
