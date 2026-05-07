@@ -165,7 +165,128 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closeNotifBtn').addEventListener('click', () => {
         document.getElementById('notifDrawer').classList.remove('open');
     });
-
-
 // Check for new items every 60 seconds
 setInterval(updateAdminBadges, 60000);
+
+let currentReportId, currentSellerId, currentProductId;
+
+// Add price, category, and sellerName to the arguments list here:
+function openInvestigate(title, desc, img, reason, details, rId, sId, pId, price, category, sellerName) {
+    // Fill data
+    document.getElementById('side-title').textContent = title;
+    document.getElementById('side-desc').textContent = desc;
+    
+    // Safety check for image
+    document.getElementById('side-img').src = img ? '../uploads/products/' + img : '../images/default_product.png';
+    
+    document.getElementById('side-reason').textContent = reason;
+    document.getElementById('side-details').textContent = details;
+
+    // These now work because they are defined in the arguments above
+    document.getElementById('side-price').textContent = price;
+    document.getElementById('side-seller-name').textContent = sellerName;
+    document.getElementById('side-category').textContent = category;
+
+    // Store IDs for the ban action
+    currentReportId = rId;
+    currentSellerId = sId;
+    currentProductId = pId;
+
+    // Show sidebar
+    document.getElementById('investigationSidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('active');
+}
+
+function closeSidebar() {
+    document.getElementById('investigationSidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+}
+
+function adminAction(type) {
+    if (!currentReportId) {
+        alert("Error: No report selected.");
+        return;
+    }
+
+    // Fix: Confirmation for BOTH Ban and Dismiss
+    const actionText = type === 'ban' ? "permanently BAN this seller and remove the post?" : "dismiss this report?";
+    if (!confirm("Are you sure you want to " + actionText)) return;
+
+    const fd = new FormData();
+    // Correctly bridges to your admin_actions.php cases
+    fd.append('action', type === 'ban' ? 'ban_user' : 'dismiss_report');
+    fd.append('report_id', currentReportId);
+    fd.append('seller_id', currentSellerId);
+    fd.append('product_id', currentProductId);
+
+    fetch('admin_actions.php', {
+        method: 'POST',
+        body: fd
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // This displays your "Report marked as Resolved" or "Seller Banned" message
+            alert(data.message);
+            
+            closeSidebar();
+
+            // The "Visual Cleanup" logic
+            // Finds the original card on the main page using the ID we saved
+            const card = document.querySelector(`button[onclick*="'${currentReportId}'"]`)?.closest('.report-card');
+            
+            if (card) {
+                card.style.transition = "0.3s ease";
+                card.style.opacity = "0";
+                card.style.transform = "translateX(20px)";
+                setTimeout(() => {
+                    card.remove();
+                    // Check if the list is now empty to show "No reports"
+                    if (document.querySelectorAll('.report-card').length === 0) {
+                        document.querySelector('.reports-list').innerHTML = 
+                            "<p style='text-align:center; color:#888; padding:20px;'>No pending reports.</p>";
+                    }
+                }, 300);
+            }
+        } else {
+            alert("Error: " + data.message);
+        }
+    })
+    .catch(err => {
+        console.error('Connection Error:', err);
+        alert("Could not connect to the server.");
+    });
+}
+
+function dismissReport(reportId, reportCard) {
+    if (!confirm("Remove this report from the list?")) return;
+
+    const fd = new FormData();
+    fd.append('action', 'dismiss_report');
+    fd.append('report_id', reportId);
+
+    fetch('admin_actions.php', {
+        method: 'POST',
+        body: fd
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            // Smoothly remove the inappropriate report card
+            reportCard.style.transition = "0.3s ease";
+            reportCard.style.opacity = "0";
+            reportCard.style.transform = "scale(0.9)";
+            
+            setTimeout(() => {
+                reportCard.remove();
+                
+                // Optional: Check if the list is now empty
+                if (document.querySelectorAll('.report-card').length === 0) {
+                    document.querySelector('.reports-list').innerHTML = 
+                        "<p style='text-align:center; color:#888; padding:20px;'>No pending reports.</p>";
+                }
+            }, 300);
+        }
+    })
+}
+
