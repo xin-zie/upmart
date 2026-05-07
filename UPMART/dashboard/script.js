@@ -214,40 +214,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- MESSAGING LOGIC ---
     function openChat(productId, otherUserId, productName) {
-        activeProductId = productId;
+        // CHANGE: Use null check instead of truthy check
+        // This ensures that productId = 0 (wishlist) is accepted
+        activeProductId = (productId !== undefined) ? productId : null;
         activeSellerId = otherUserId;
 
-        el.msgTitle.textContent = productName;
+        // Safety: Fallback if productName is missing from the URL
+        el.msgTitle.textContent = productName || "Chat";
+        
         el.msgConvos.style.display = 'none';
         el.msgThreadView.style.display = 'flex';
         el.msgModal.classList.add('open');
 
+        // Trigger the initial load
         loadThread();
+        
+        // Reset the poller
         clearInterval(msgPollTimer);
         msgPollTimer = setInterval(loadThread, 3000);
     }
 
     window.openChatUI = openChat;
 
-    function loadThread() {
-        if (!activeProductId || !activeSellerId) return;
-        fetch(`handle_actions.php?get_messages=1&product_id=${activeProductId}&other_user=${activeSellerId}`)
+   function loadThread() {
+        if (activeProductId === null || activeProductId === undefined || !activeSellerId) {
+            return;
+        }
+
+        const pid = activeProductId; 
+        
+        fetch(`handle_actions.php?get_messages=1&product_id=${pid}&other_user=${activeSellerId}`)
             .then(r => r.json())
             .then(msgs => {
-                const atBottom = el.msgThread.scrollHeight - el.msgThread.scrollTop <= el.msgThread.clientHeight + 50;
-                el.msgThread.innerHTML = '';
-                if (!msgs.length) {
-                    el.msgThread.innerHTML = '<div class="msg-empty">No messages yet. Say hello!</div>';
+                const threadView = document.getElementById('msg-thread');
+                if (!threadView) return;
+
+                threadView.innerHTML = '';
+                if (msgs.length === 0) {
+                    threadView.innerHTML = '<div class="msg-empty">No messages yet. Say hello!</div>';
                     return;
                 }
+
                 msgs.forEach(m => {
                     const bubble = document.createElement('div');
                     bubble.className = `msg-bubble ${m.is_mine ? 'mine' : 'theirs'}`;
-                    const time = new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    bubble.innerHTML = `${escapeHtml(m.message)}<span class="msg-time">${time}</span>`;
-                    el.msgThread.appendChild(bubble);
+                    bubble.innerHTML = `${escapeHtml(m.message)}<span class="msg-time">${m.sent_at}</span>`;
+                    threadView.appendChild(bubble);
                 });
-                if (atBottom) el.msgThread.scrollTop = el.msgThread.scrollHeight;
+                threadView.scrollTop = threadView.scrollHeight;
             });
     }
 
@@ -271,10 +285,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="convo-avatar" style="background-image: url('${c.profile_pic}');"></div>
                         <div class="convo-details">
                             <strong>${c.other_user_name}</strong>
-                            <span class="convo-product">${c.product_name}</span>
-                            <span class="convo-last-msg">${c.last_message}</span>
+                            
+                            <span class="convo-product" style="color: #e67e22; font-weight: bold;">
+                                ${c.prod_title}
+                            </span>
+                            
+                            <span class="convo-last-msg">${c.last_msg}</span>
                         </div>`;
-                    div.addEventListener('click', () => openChat(c.product_id, c.other_id, c.product_name));
+                    
+                    // Pass c.prod_title back to openChat so the header matches too
+                    div.addEventListener('click', () => openChat(c.product_id, c.other_id, c.prod_title));
                     el.msgConvos.appendChild(div);
                 });
             });
@@ -282,12 +302,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function sendMessage() {
         const text = el.msgInput.value.trim();
-        if (!text || !activeProductId || !activeSellerId) return;
+        // CHANGE: Allow activeProductId to be 0
+        if (!text || activeProductId === null || !activeSellerId) return; 
+
         const fd = new FormData();
         fd.append('send_message', '1');
-        fd.append('product_id', activeProductId);
+        fd.append('product_id', activeProductId); // This will be 0 for matches
         fd.append('receiver_id', activeSellerId);
         fd.append('message', text);
+
         el.msgInput.value = '';
         fetch('handle_actions.php', { method: 'POST', body: fd })
             .then(r => r.json())
@@ -309,6 +332,9 @@ document.addEventListener('DOMContentLoaded', () => {
         el.msgThreadView.style.display = 'none';
         el.msgConvos.style.display = 'block';
         el.msgTitle.textContent = 'Messages';
+
+        el.msgThread.innerHTML = '';
+
         clearInterval(msgPollTimer);
         activeProductId = null;
         activeSellerId = null;
@@ -385,10 +411,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ─────────────────────────────────────────────
     // 11. HELPERS
     // ─────────────────────────────────────────────
-    function escapeHtml(str) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
-
     function showToast(msg) {
         const t = document.createElement('div');
         t.textContent = msg;
@@ -446,14 +473,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('open_chat')) {
-        const userId = urlParams.get('user_id');
-        const userName = urlParams.get('name');
+        // These strings must match exactly what handleNotifClick sends in the URL
+        const userId = urlParams.get('user_id'); 
         const itemName = urlParams.get('item');
         
-        // Trigger the chat UI immediately upon landing on the marketplace
-        if (window.openChatUI) {
-            window.openChatUI(0, userId, "Match: " + itemName);
-        }
+        // Give the page half a second to initialize the messaging modal
+        setTimeout(() => {
+            // Check if openChatUI is globally accessible
+            if (typeof window.openChatUI === 'function') {
+                // We use 0 for productId because it's a wishlist match
+                window.openChatUI(0, userId, "Match: " + (itemName || "Item"));
+                
+                // CLEANUP: Clean the URL so the chat doesn't pop up again if they refresh
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                console.error("openChatUI function not found!");
+            }
+        }, 600);
     }
 
 });
