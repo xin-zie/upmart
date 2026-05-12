@@ -241,8 +241,9 @@ $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
                             <i class="fas fa-cloud-upload-alt"></i>
                             <p>Drag & Drop or Click to upload image</p>
                             <input type="file" name="product_images[]" id="file-input" hidden accept="image/*" multiple>
+                            
+                            <div id="preview-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; justify-content: center;"></div>
                         </div>
-                        <div id="image-preview-container" class="preview-grid"></div>
                         <button type="submit" name="create_post" id="form-submit-btn" class="post-btn">Publish Post</button>
                     </form>
                 </section>
@@ -408,7 +409,68 @@ $show_setup_overlay = (($user['is_setup_complete'] ?? 0) == 0);
             </form>
         </div>
     </div>
+    <script>const dropzone = document.getElementById('dropzone-area');
+const fileInput = document.getElementById('file-input');
+const previewContainer = document.getElementById('preview-container');
 
+// 1. Trigger file input on click
+dropzone.addEventListener('click', () => fileInput.click());
+
+// 2. Drag & Drop Visual Effects
+['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.classList.add('highlight');
+    }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('highlight');
+    }, false);
+});
+
+// 3. Handle Dropped Files
+dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    fileInput.files = files; // Assign files to input
+    handleFiles(files);      // Show previews
+});
+
+// 4. Handle Selected Files (via click)
+fileInput.addEventListener('change', function() {
+    handleFiles(this.files);
+});
+
+// 5. Function to show previews
+function handleFiles(files) {
+    previewContainer.innerHTML = ''; // Clear previous previews
+    
+    Array.from(files).forEach(file => {
+        if (!file.type.startsWith('image/')) return; // Skip non-images
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        
+        reader.onload = () => {
+            const imgWrapper = document.createElement('div');
+            imgWrapper.style.position = 'relative';
+            
+            const img = document.createElement('img');
+            img.src = reader.result;
+            img.style.width = '80px';
+            img.style.height = '80px';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '5px';
+            img.style.border = '1px solid #ddd';
+
+            imgWrapper.appendChild(img);
+            previewContainer.appendChild(imgWrapper);
+        };
+    });
+}</script>
     <script src="../dashboard/script.js"></script>
 </body>
 </html>
